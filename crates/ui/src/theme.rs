@@ -17,10 +17,18 @@ pub struct Theme {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Colors {
+    /// Window background.
     pub base: Color32,
+    /// Top and bottom bars, darker than the window background.
+    pub chrome: Color32,
     pub surface: Color32,
     pub surface_hover: Color32,
     pub surface_selected: Color32,
+    /// Buttons and other primary controls.
+    pub primary: Color32,
+    /// Lighter primary for switches and selection indicators.
+    pub primary_light: Color32,
+    /// Highlights such as the playing song.
     pub accent: Color32,
     pub text: Color32,
     pub text_dim: Color32,
@@ -86,20 +94,24 @@ impl Default for Theme {
 }
 
 impl Theme {
-    /// Built-in theme styled after osu!lazer (deep indigo background with a pink accent).
+    /// Built-in theme styled after osu!lazer (neutral dark background, purple controls, pink highlights).
     pub fn lazer() -> Self {
         Self {
             name: "lazer".to_owned(),
+            // Sampled from osu!lazer screenshots: a neutral dark with a slight purple tint.
             colors: Colors {
-                base: Color32::from_rgb(0x1c, 0x17, 0x27),
-                surface: Color32::from_rgb(0x2a, 0x24, 0x38),
-                surface_hover: Color32::from_rgb(0x35, 0x2d, 0x47),
-                surface_selected: Color32::from_rgb(0x43, 0x3a, 0x5c),
+                base: Color32::from_rgb(0x24, 0x22, 0x2a),
+                chrome: Color32::from_rgb(0x19, 0x19, 0x19),
+                surface: Color32::from_rgb(0x2c, 0x2a, 0x33),
+                surface_hover: Color32::from_rgb(0x38, 0x35, 0x41),
+                surface_selected: Color32::from_rgb(0x45, 0x3d, 0x5c),
+                primary: Color32::from_rgb(0x59, 0x33, 0xcc),
+                primary_light: Color32::from_rgb(0x8c, 0x66, 0xff),
                 accent: Color32::from_rgb(0xff, 0x66, 0xaa),
                 text: Color32::from_rgb(0xff, 0xff, 0xff),
-                text_dim: Color32::from_rgb(0xb8, 0xb0, 0xcc),
-                text_disabled: Color32::from_rgb(0x6d, 0x65, 0x85),
-                border: Color32::from_rgb(0x3b, 0x33, 0x50),
+                text_dim: Color32::from_rgb(0xb5, 0xb0, 0xc0),
+                text_disabled: Color32::from_rgb(0x6b, 0x67, 0x75),
+                border: Color32::from_rgb(0x3a, 0x37, 0x43),
                 warning: Color32::from_rgb(0xff, 0xcc, 0x22),
                 error: Color32::from_rgb(0xff, 0x55, 0x66),
             },
@@ -137,7 +149,7 @@ impl Theme {
                 radius: 2,
                 decay_per_second: 1.6,
                 color_low: Color32::from_rgba_unmultiplied(0xff, 0x66, 0xaa, 0x90),
-                color_high: Color32::from_rgba_unmultiplied(0xaa, 0x88, 0xff, 0x90),
+                color_high: Color32::from_rgba_unmultiplied(0x8c, 0x66, 0xff, 0x90),
             },
         }
     }
@@ -168,11 +180,11 @@ impl Theme {
         visuals.window_stroke = Stroke::new(1.0, c.border);
         visuals.window_corner_radius = CornerRadius::same(s.radius_panel);
         visuals.menu_corner_radius = CornerRadius::same(s.radius_button);
-        visuals.hyperlink_color = c.accent;
+        visuals.hyperlink_color = c.primary_light;
         visuals.warn_fg_color = c.warning;
         visuals.error_fg_color = c.error;
-        visuals.selection.bg_fill = c.accent.gamma_multiply(0.35);
-        visuals.selection.stroke = Stroke::new(1.0, c.accent);
+        visuals.selection.bg_fill = c.primary;
+        visuals.selection.stroke = Stroke::new(1.0, c.primary_light);
 
         let radius = CornerRadius::same(s.radius_button);
         let widgets = &mut visuals.widgets;
