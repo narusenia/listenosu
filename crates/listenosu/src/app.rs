@@ -13,6 +13,7 @@ use ui::components::playbar::PlaybarEvent;
 use ui::components::playlist_editor::PlaylistView;
 use ui::components::song_rows::RowEvent;
 use ui::components::spectrum::SpectrumSmoother;
+use ui::components::titlebar::{TitlebarEvent, titlebar};
 use ui::model::{PlayerView, Repeat as UiRepeat, SongView};
 use ui::screens::about::about_screen;
 use ui::screens::first_run::first_run_screen;
@@ -27,6 +28,11 @@ use crate::listing::{self, SORT_OPTIONS, song_view};
 use crate::side::{Action, Side, SideInput};
 
 pub const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
+
+/// A content size plus the title bar, as the window's inner size.
+pub fn window_size(shape: &ui::theme::Shape, content: [f32; 2]) -> [f32; 2] {
+    [content[0], content[1] + shape.titlebar_height]
+}
 /// How long after a change the settings and window position are written.
 const SAVE_DELAY: Duration = Duration::from_secs(2);
 /// After a seek the engine's position lags by a few hundred ms, so the UI shows the target meanwhile.
@@ -444,8 +450,6 @@ impl App {
                 Action::DismissBanner => {
                     self.dismissed_problem = self.catalog.as_ref().and_then(|c| c.problem.clone());
                 }
-                Action::OpenSettings => self.page = Page::Settings,
-                Action::OpenAbout => self.page = Page::About,
                 Action::ClearQueue => {
                     if let Some(player) = &mut self.player {
                         player.clear();
@@ -674,14 +678,42 @@ impl App {
         ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(level));
     }
 
+    fn apply_titlebar(&mut self, ctx: &egui::Context, bar: TitlebarEvent) {
+        use egui::ViewportCommand as Cmd;
+        if bar.minimize {
+            ctx.send_viewport_cmd(Cmd::Minimized(true));
+        }
+        if bar.toggle_maximize {
+            let maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
+            ctx.send_viewport_cmd(Cmd::Maximized(!maximized));
+        }
+        if bar.close {
+            ctx.send_viewport_cmd(Cmd::Close);
+        }
+        if bar.settings {
+            self.page = Page::Settings;
+        }
+        if bar.about {
+            self.page = Page::About;
+        }
+    }
+
     fn set_mini(&mut self, ctx: &egui::Context, mini: bool) {
         self.mini = mini;
         self.config.mini = mini;
         let shape = &self.theme.shape;
         let (default_size, min, saved) = if mini {
-            (shape.mini_size, shape.mini_size, self.config.mini_window)
+            (
+                window_size(shape, shape.mini_size),
+                window_size(shape, shape.mini_size),
+                self.config.mini_window,
+            )
         } else {
-            (FULL_SIZE, shape.min_size, self.config.full_window)
+            (
+                window_size(shape, FULL_SIZE),
+                window_size(shape, shape.min_size),
+                self.config.full_window,
+            )
         };
         ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min.into()));
         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(
@@ -880,6 +912,15 @@ impl eframe::App for App {
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_config(true);
         }
+
+        let bar = titlebar(
+            ui,
+            &self.theme,
+            "listenosu",
+            !self.mini,
+            self.catalog.is_some() && !self.mini,
+        );
+        self.apply_titlebar(&ctx, bar);
 
         if self.catalog.is_none() {
             self.show_first_run(ui);

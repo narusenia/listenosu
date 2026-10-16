@@ -9,7 +9,7 @@ use eframe::egui;
 use library::store::AppDirs;
 use ui::Theme;
 
-use app::{App, FULL_SIZE};
+use app::{App, FULL_SIZE, window_size};
 use config::Config;
 
 fn main() -> eframe::Result {
@@ -29,11 +29,18 @@ fn main() -> eframe::Result {
 fn viewport(config: &Config) -> egui::ViewportBuilder {
     let shape = Theme::lazer().shape;
     let (default_size, min, saved) = if config.mini {
-        (shape.mini_size, shape.mini_size, config.mini_window)
+        let size = window_size(&shape, shape.mini_size);
+        (size, size, config.mini_window)
     } else {
-        (FULL_SIZE, shape.min_size, config.full_window)
+        (
+            window_size(&shape, FULL_SIZE),
+            window_size(&shape, shape.min_size),
+            config.full_window,
+        )
     };
+    // The app draws its own title bar.
     let mut viewport = egui::ViewportBuilder::default()
+        .with_decorations(false)
         .with_inner_size(saved.map_or(default_size, |g| g.size))
         .with_min_inner_size(min);
     // A position from a monitor that is gone would open the window out of reach; the limit is a rough guard.

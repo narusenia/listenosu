@@ -48,6 +48,8 @@ pub struct Shape {
     pub card_height: f32,
     pub card_gap: f32,
     pub playbar_height: f32,
+    /// Height of the custom title bar (also the size of its buttons).
+    pub titlebar_height: f32,
     pub list_width: f32,
     pub mini_size: [f32; 2],
     /// Smallest window of the main screen; the layout is checked down to this size.
@@ -129,6 +131,7 @@ impl Theme {
                 card_height: 56.0,
                 card_gap: 6.0,
                 playbar_height: 72.0,
+                titlebar_height: 32.0,
                 list_width: 440.0,
                 mini_size: [360.0, 120.0],
                 min_size: [820.0, 480.0],

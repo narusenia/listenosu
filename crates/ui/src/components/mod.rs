@@ -9,3 +9,4 @@ pub mod song_card;
 pub mod song_list;
 pub mod song_rows;
 pub mod spectrum;
+pub mod titlebar;

@@ -1,4 +1,4 @@
-//! The area under the song info on the main screen: queue and playlists, plus the way to Settings and About.
+//! The area under the song info on the main screen: queue and playlists.
 
 use eframe::egui;
 use ui::Theme;
@@ -17,8 +17,6 @@ enum Tab {
 /// What the user asked for; the app applies it.
 pub enum Action {
     DismissBanner,
-    OpenSettings,
-    OpenAbout,
     ClearQueue,
     AddToQueue,
     QueueRows(RowEvent),
@@ -53,14 +51,6 @@ impl Side {
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.tab, Tab::Queue, "Queue");
             ui.selectable_value(&mut self.tab, Tab::Playlists, "Playlists");
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("About").clicked() {
-                    actions.push(Action::OpenAbout);
-                }
-                if ui.button("Settings").clicked() {
-                    actions.push(Action::OpenSettings);
-                }
-            });
         });
         // Leave the bottom to the spectrum, which the main screen pins there.
         let size = egui::vec2(
