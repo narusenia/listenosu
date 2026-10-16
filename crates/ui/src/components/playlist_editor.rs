@@ -38,7 +38,7 @@ impl PlaylistEditor {
     ) -> PlaylistEvent {
         let mut event = PlaylistEvent::default();
 
-        ui.label(RichText::new("Playlists").font(fonts::bold(theme.text.heading)));
+        ui.label(theme.heading("Playlists"));
         for (index, playlist) in playlists.iter().enumerate() {
             let label = format!("{}  ({})", playlist.name, playlist.songs.len());
             if ui
@@ -87,7 +87,11 @@ impl PlaylistEditor {
                     self.rename = None;
                 }
             } else {
-                ui.label(RichText::new(&playlist.name).font(fonts::bold(theme.text.body)));
+                ui.label(
+                    RichText::new(&playlist.name)
+                        .font(fonts::bold(theme.text.body))
+                        .color(theme.colors.text),
+                );
                 if ui.button("Rename").clicked() {
                     self.rename = Some(playlist.name.clone());
                 }

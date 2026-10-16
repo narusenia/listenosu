@@ -156,6 +156,13 @@ impl Theme {
         }
     }
 
+    /// Section heading: bold, heading size and full-brightness text.
+    pub fn heading(&self, text: impl Into<String>) -> egui::RichText {
+        egui::RichText::new(text)
+            .font(crate::fonts::bold(self.text.heading))
+            .color(self.colors.text)
+    }
+
     pub fn to_toml(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(self)
     }
@@ -185,6 +192,7 @@ impl Theme {
         visuals.hyperlink_color = c.primary_light;
         visuals.warn_fg_color = c.warning;
         visuals.error_fg_color = c.error;
+        visuals.slider_trailing_fill = true;
         visuals.selection.bg_fill = c.primary;
         // egui also uses this stroke color for the text of selected items.
         visuals.selection.stroke = Stroke::new(1.0, c.text);
@@ -195,10 +203,11 @@ impl Theme {
         widgets.noninteractive.weak_bg_fill = c.surface;
         widgets.noninteractive.bg_stroke = Stroke::new(1.0, c.border);
         widgets.noninteractive.fg_stroke = Stroke::new(1.0, c.text_dim);
+        // Lighter than `surface`, so buttons and slider rails stay visible on settings rows.
         for (state, fill) in [
-            (&mut widgets.inactive, c.surface),
-            (&mut widgets.hovered, c.surface_hover),
-            (&mut widgets.active, c.surface_selected),
+            (&mut widgets.inactive, c.surface_hover),
+            (&mut widgets.hovered, c.surface_selected),
+            (&mut widgets.active, c.primary),
             (&mut widgets.open, c.surface_selected),
         ] {
             state.bg_fill = fill;
