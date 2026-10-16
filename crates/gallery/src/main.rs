@@ -1,4 +1,5 @@
 mod mock;
+mod sections;
 mod theme_panel;
 
 use std::path::Path;
@@ -31,6 +32,8 @@ struct Image {
 }
 
 struct Gallery {
+    section: sections::Section,
+    extras: sections::Extras,
     theme: Theme,
     applied: Option<Theme>,
     status: String,
@@ -58,6 +61,8 @@ impl Gallery {
         ui::fonts::install(&cc.egui_ctx);
         let songs = mock::songs(5000);
         Self {
+            section: sections::Section::default(),
+            extras: sections::Extras::new(&songs),
             theme: Theme::lazer(),
             applied: None,
             status: String::new(),
@@ -293,13 +298,26 @@ impl eframe::App for Gallery {
                 egui::Frame::NONE
                     .inner_margin(self.theme.shape.padding)
                     .show(ui, |ui| {
-                        egui::ScrollArea::vertical()
-                            .max_height(content_height)
-                            .auto_shrink(false)
-                            .show(ui, |ui| self.preview(ui));
+                        ui.horizontal(|ui| {
+                            for section in sections::Section::ALL {
+                                ui.selectable_value(&mut self.section, section, section.label());
+                            }
+                        });
+                        let size = egui::vec2(ui.available_width(), content_height - 40.0);
+                        ui.allocate_ui(size, |ui| match self.section {
+                            sections::Section::Components => {
+                                egui::ScrollArea::vertical()
+                                    .auto_shrink(false)
+                                    .show(ui, |ui| self.preview(ui));
+                            }
+                            sections::Section::Queue => self.extras.queue(ui, &self.theme),
+                            sections::Section::Playlists => self.extras.playlists(ui, &self.theme),
+                            sections::Section::Notices => self.extras.notices(ui, &self.theme),
+                        });
                     });
                 spectrum(ui, &self.theme, &levels, spectrum_height);
             });
+        self.extras.toasts.show(&ctx, &self.theme);
     }
 }
 
