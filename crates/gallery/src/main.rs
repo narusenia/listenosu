@@ -1,10 +1,10 @@
+use eframe::egui;
+
 struct Gallery;
 
 impl eframe::App for Gallery {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("listenosu gallery");
-        });
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.heading("listenosu gallery");
     }
 }
 
