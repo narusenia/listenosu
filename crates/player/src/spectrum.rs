@@ -130,15 +130,24 @@ impl Analyzer {
 
         let sample_rate = self.ring.sample_rate.load(Ordering::Relaxed) as f32;
         let bin_hz = sample_rate / WINDOW as f32;
-        self.bands.fill(0.0);
-        for (bin, c) in self.output.iter().enumerate().skip(1) {
-            let hz = bin as f32 * bin_hz;
-            if !(LOW_HZ..HIGH_HZ).contains(&hz) {
-                continue;
-            }
-            let band = ((hz / LOW_HZ).ln() / (HIGH_HZ / LOW_HZ).ln() * BANDS as f32) as usize;
-            let band = band.min(BANDS - 1);
-            self.bands[band] = self.bands[band].max(c.norm() / WINDOW as f32);
+        let magnitude = |bin: usize| {
+            self.output
+                .get(bin)
+                .map_or(0.0, |c| c.norm() / WINDOW as f32)
+        };
+        let ratio = HIGH_HZ / LOW_HZ;
+        for band in 0..BANDS {
+            let edge = |n: usize| LOW_HZ * ratio.powf(n as f32 / BANDS as f32);
+            let (lo, hi) = (edge(band) / bin_hz, edge(band + 1) / bin_hz);
+            let mut level = (lo.ceil() as usize..=hi.floor() as usize)
+                .map(magnitude)
+                .fold(0.0, f32::max);
+            // Low bands are narrower than one FFT bin and may hold none: read between the neighbours
+            // instead, or the left of the spectrum shows gaps.
+            let center = (lo * hi).sqrt();
+            let (whole, frac) = (center.floor() as usize, center.fract());
+            level = level.max(magnitude(whole) * (1.0 - frac) + magnitude(whole + 1) * frac);
+            self.bands[band] = level;
         }
         for level in &mut self.bands {
             // The Hann window halves a full-scale sine to 0.25 per bin, so scale by 4 to put it at 0 dB.
@@ -187,6 +196,24 @@ mod tests {
 
         feed(&ring, std::iter::repeat_n(0.0, WINDOW));
         assert!(analyzer.levels().iter().all(|&l| l == 0.0));
+    }
+
+    #[test]
+    fn low_bands_narrower_than_a_bin_are_not_left_empty() {
+        let ring = Ring::new();
+        ring.sample_rate.store(48000, Ordering::Relaxed);
+        let mut analyzer = Analyzer::new(ring.clone());
+        // Broadband noise-like signal: every band should read something.
+        let mut x = 1u32;
+        feed(
+            &ring,
+            (0..WINDOW).map(|_| {
+                x = x.wrapping_mul(1664525).wrapping_add(1013904223);
+                (x >> 8) as f32 / (1 << 23) as f32 - 1.0
+            }),
+        );
+        let levels = *analyzer.levels();
+        assert!(levels.iter().all(|&l| l > 0.0), "{levels:?}");
     }
 
     #[test]
