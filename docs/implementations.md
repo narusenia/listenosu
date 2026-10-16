@@ -21,7 +21,7 @@
 | 0 | プロジェクト基盤 | ほぼ完了（3 OS の CI は push 後に確認） | |
 | 1 | UI ギャラリー（UI 設計） | ほぼ完了（1.0〜1.4 の実装と確認が済み。残りは設定・初回起動・About の目視確認、メイン画面とキューなどのスクリーンショットの保存、最小サイズの OS 側強制の確認） | |
 | 2 | 技術検証（試作） | ほぼ完了（7 項目の検証と方針の記録が済み、lazer 起動中の実機確認も通過。macOS は未確認） | |
-| 3 | ライブラリ読み取り（C# ヘルパー） | 未着手 | |
+| 3 | ライブラリ読み取り（C# ヘルパー） | 進行中（ヘルパー、Rust 側の起動・検索・検出が完了。残りはキャッシュ、独自プレイリスト、見つからない曲の判定、重複まとめのテスト） | |
 | 4 | 再生エンジン | 未着手 | |
 | 5 | アプリ統合（メイン画面・ミニプレイヤー） | 未着手 | |
 | 6 | OS 連携 | 未着手 | |
@@ -115,13 +115,13 @@ listenosu/
 
 - [x] ヘルパーとの通信プロトコル（JSON Lines）を定義する：`snapshot`、`changed`、`error`、`version`（[helper-protocol.md](helper-protocol.md)）
 - [x] ヘルパーで BeatmapSet / Beatmap / Metadata / Files / Collection を読み、JSON に変換する（`helper/Helper/`。手元の lazer で 48 曲を読めた。Collection は手元が 0 件で中身は未確認）
-- [ ] Rust 側で子プロセスの起動、監視、異常終了時の再起動を実装する
-- [ ] lazer のデータフォルダを自動検出する（OS ごとの既定の場所、storage.ini）
+- [x] Rust 側で子プロセスの起動、監視、異常終了時の再起動を実装する（`library::helper`。再起動は 3 回まで、待ち時間は 1 秒 × 回数。尽きたら `Event::Failed`。実ヘルパーでの読み込みは `cargo test -p library -- --ignored` で確認）
+- [x] lazer のデータフォルダを自動検出する（OS ごとの既定の場所、storage.ini）（`library::discover`。Windows で実機確認。macOS と Linux の既定の場所は未検証）
 - [x] 音声ハッシュ単位で重複をまとめ、Hidden / DeletePending を除外する（ヘルパー側。自動テストは未作成）
-- [ ] 検索（全フィールドの AND 検索）と並べ替えを実装する
+- [x] 検索（全フィールドの AND 検索）と並べ替えを実装する（`library::search`。最終プレイ日の昇順・降順とも、未プレイの曲は最後）
 - [ ] 曲一覧をキャッシュし、DB を読めないときはキャッシュで代用する
 - [ ] 独自プレイリストの保存と読み込み（音声ハッシュ＋曲情報の控え）
-- [ ] テストを書く（重複のまとめ、検索、並べ替え、見つからない曲の判定）
+- [~] テストを書く（重複のまとめ、検索、並べ替え、見つからない曲の判定）。検索・並べ替え・データフォルダ検出・プロトコル・再起動のテストは書いた。重複のまとめ（C#）と、見つからない曲の判定は未作成
 
 **完了条件**: 手元の lazer ライブラリ全曲を、lazer の起動中にも一覧として取得できる
 
@@ -200,3 +200,4 @@ listenosu/
   - **未確認**: lazer 起動中の読み取りと、インポート中の連続読み取りで壊れた読み取りが無いこと（読み取りは lazer の書き込みと調整しないため）。macOS。flac。Collections の中身（手元は 0 件）。lazer 起動中の確認手順は `helper/Spike` の `head` と `dump`（読み取りのみ）を使う
 - 2026-10-17: Phase 3 を開始した。プロトコルを [helper-protocol.md](helper-protocol.md) に定義し、ヘルパー本体を `helper/Helper/`（`listenosu-helper`）に実装した。`open` / `refresh` / `quit` を受け、`version`・`snapshot`・`changed`・`error` を返す。更新は client.realm の先頭 24 バイトを 1 秒ごとに見て検知する。手元の lazer（停止中）で `snapshot` は 48 曲、約 0.5 秒、41 KB。`length_ms` が 0 の曲が 1 曲あった（UI 側で再生時の長さに置き換える）。lazer 起動中の読み取りは未確認
 - 2026-10-17: lazer 起動中の実機確認（ユーザーが `helper/watch-check.ps1` で実施）。`version` と `snapshot` が出て、lazer で譜面をインポート・削除すると `changed` が届き、`error` は出なかった（ユーザーの報告は「全部正常に出た」。件数の記録は無い）。これで、読み取り専用の読み取りと先頭 24 バイトの監視は、Windows で採用できる。インポート中の連続読み取りの厳密な検証（件数の整合）は、Phase 3 の結合テストで行う
+- 2026-10-17: Phase 3 の Rust 側を `crates/library/` に実装した。曲モデル（`Song`、タイトルとアーティストは原語とローマ字を切り替え、空なら他方にフォールバック）、`search`（空白区切りの AND、大文字小文字を区別しない、並べ替え 6 種）、`discover`（既定の場所と storage.ini の `FullPath`）、`helper`（子プロセスの起動と再起動、`Command` に `CREATE_NO_WINDOW`）、`protocol`。プロトコルの日時を ISO 文字列から Unix ミリ秒（`date_added_ms`、`last_played_ms`）に変えた（JSON ライターが小数部の桁を省くため、文字列比較では並べ替えられない）
