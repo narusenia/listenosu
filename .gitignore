@@ -1,0 +1,5 @@
+/target
+/helper/**/bin
+/helper/**/obj
+*.log
+.DS_Store
