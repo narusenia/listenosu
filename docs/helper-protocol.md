@@ -46,8 +46,8 @@
 | `source`, `tags`, `author` | string | ソース、タグ、譜面作者 |
 | `bpm` | number | 代表の譜面の BPM |
 | `length_ms` | number | 代表の譜面の長さ（ミリ秒）。0 のことがある（手元では 1 曲）ので、0 のときは再生時に取得した長さを使う |
-| `date_added` | string | 譜面セットの追加日時（ISO 8601） |
-| `last_played` | string / null | この音声を使う譜面のうち最も新しい最終プレイ日時（ISO 8601）。無ければ null |
+| `date_added_ms` | number | 譜面セットの追加日時（Unix エポックからのミリ秒） |
+| `last_played_ms` | number / null | この音声を使う譜面のうち最も新しい最終プレイ日時（Unix エポックからのミリ秒）。無ければ null |
 | `beatmap_md5s` | string[] | この音声を使う譜面すべての MD5（コレクションとの突き合わせ用） |
 
 ### collection

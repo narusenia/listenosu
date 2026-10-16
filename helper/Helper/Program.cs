@@ -101,11 +101,11 @@ void WriteLibrary(Utf8JsonWriter w, string type, List<Song> songs, List<Collecti
         w.WriteString("author", s.Author);
         w.WriteNumber("bpm", s.Bpm);
         w.WriteNumber("length_ms", s.LengthMs);
-        w.WriteString("date_added", s.DateAdded);
+        w.WriteNumber("date_added_ms", s.DateAdded.ToUnixTimeMilliseconds());
         if (s.LastPlayed is { } played)
-            w.WriteString("last_played", played);
+            w.WriteNumber("last_played_ms", played.ToUnixTimeMilliseconds());
         else
-            w.WriteNull("last_played");
+            w.WriteNull("last_played_ms");
         WriteStrings(w, "beatmap_md5s", s.BeatmapMd5s);
         w.WriteEndObject();
     }
