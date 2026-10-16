@@ -8,3 +8,6 @@ repository.workspace = true
 [dependencies]
 kira = "0.12.5"
 realfft = "3.5.0"
+
+[dev-dependencies]
+library = { path = "../library" }
