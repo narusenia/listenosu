@@ -33,7 +33,7 @@ osu!lazer のライブラリにある楽曲を流し聴きするための、非�
 
 ## Git
 
-- 利用者が頼まない限り commit / push / PR はしない
+- commit は、論理単位ごとに利用者の確認なしで行ってよい（2026-10-17 に許可）。push と PR は、利用者が頼まない限りしない
 - commit は論理単位 1 つ、英語 1 行の Conventional Commit（`feat:` `fix:` `refactor:` `docs:` `test:` `chore:` `perf:` `ci:`）。prefix の後は小文字
 - ブランチ名は同じ prefix + 具体的な kebab-case（例：`feat/varint-codec`）
 - commit メッセージにタスク ID・issue 番号・エージェント名を入れない
