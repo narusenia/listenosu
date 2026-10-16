@@ -7,12 +7,16 @@ use std::path::Path;
 use eframe::egui;
 use ui::Theme;
 use ui::backdrop::Backdrop;
+use ui::components::notice::NoticeKind;
 use ui::components::playbar::PlaybarEvent;
 use ui::components::song_card::{CardState, song_card};
 use ui::components::spectrum::SpectrumSmoother;
 use ui::model::{PlayerView, Repeat, SongView};
+use ui::screens::about::about_screen;
+use ui::screens::first_run::first_run_screen;
 use ui::screens::main_screen::{MainEvent, MainInput, MainState, main_screen};
 use ui::screens::mini_player::mini_player;
+use ui::screens::settings::{SettingsState, settings_screen};
 
 const VIEW_OPTIONS: [&str; 3] = ["All songs", "Collection: Favorites", "Playlist: Work BGM"];
 const SORT_OPTIONS: [&str; 6] = [
@@ -46,6 +50,9 @@ struct Gallery {
     main_only: bool,
     /// Showing the mini player (`cargo run -p gallery -- mini` starts there).
     mini: bool,
+    /// A full-window page opened from the command line: `settings`, `first-run` or `about`.
+    page: Option<Page>,
+    settings: SettingsState,
     playing: Option<usize>,
 
     player: PlayerView,
@@ -69,6 +76,21 @@ impl Gallery {
                 .unwrap_or_default(),
             main_only: std::env::args().nth(1).as_deref() == Some("main"),
             mini: starts_mini(),
+            page: std::env::args().nth(1).as_deref().and_then(Page::from_arg),
+            settings: SettingsState {
+                data_folder: SAMPLE_FOLDER.to_owned(),
+                language: 0,
+                romanized: false,
+                crossfade_secs: 0.0,
+                tray_on_close: true,
+                mini_on_top: false,
+                spectrum: true,
+                hotkeys: false,
+                hotkey_play_pause: None,
+                discord: false,
+                check_updates: true,
+                capturing: false,
+            },
             extras: sections::Extras::new(&songs),
             theme: Theme::lazer(),
             applied: None,
@@ -209,6 +231,40 @@ impl Gallery {
         self.apply_playbar(ctx, event.playbar);
     }
 
+    fn show_page(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, page: Page) {
+        let theme = self.theme.clone();
+        egui::CentralPanel::default()
+            .frame(egui::Frame::NONE.fill(theme.colors.base))
+            .show(ui, |ui| match page {
+                Page::Settings => {
+                    let event = settings_screen(ui, &theme, &mut self.settings);
+                    if event.choose_folder {
+                        self.extras.toasts.push(
+                            NoticeKind::Info,
+                            "The folder dialog is not part of the gallery.",
+                            theme.motion.toast_seconds,
+                        );
+                    }
+                    if event.back {
+                        self.page = None;
+                    }
+                }
+                Page::FirstRun => {
+                    let searched = [SAMPLE_FOLDER.to_owned()];
+                    let event = first_run_screen(ui, &theme, &searched);
+                    if event.choose_folder || event.retry {
+                        self.page = None;
+                    }
+                }
+                Page::About => {
+                    if about_screen(ui, &theme, env!("CARGO_PKG_VERSION")) {
+                        self.page = None;
+                    }
+                }
+            });
+        self.extras.toasts.show(ctx, &theme);
+    }
+
     fn show_mini(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let levels = self.spectrum_levels(ctx.input(|i| i.stable_dt));
         let song = self.playing.and_then(|i| self.visible.get(i));
@@ -303,6 +359,10 @@ impl eframe::App for Gallery {
             self.show_mini(&ctx, ui);
             return;
         }
+        if let Some(page) = self.page {
+            self.show_page(&ctx, ui, page);
+            return;
+        }
         // The tuning panel would take a third of a small window, so `main` leaves it out.
         if !self.main_only {
             egui::Panel::left("theme_panel")
@@ -383,6 +443,26 @@ fn load_images() -> Vec<Image> {
             }
         })
         .collect()
+}
+
+const SAMPLE_FOLDER: &str = r"C:\Users\you\AppData\Roaming\osu";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Page {
+    Settings,
+    FirstRun,
+    About,
+}
+
+impl Page {
+    fn from_arg(arg: &str) -> Option<Self> {
+        match arg {
+            "settings" => Some(Self::Settings),
+            "first-run" => Some(Self::FirstRun),
+            "about" => Some(Self::About),
+            _ => None,
+        }
+    }
 }
 
 const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
