@@ -1,0 +1,240 @@
+use egui::{Color32, CornerRadius, FontFamily, FontId, Stroke, TextStyle, vec2};
+use serde::{Deserialize, Serialize};
+
+/// UI の見た目に関わる値をすべてここに集める。UI のコードに色や寸法を直接書かない。
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Theme {
+    pub name: String,
+    pub colors: Colors,
+    pub shape: Shape,
+    pub text: TextSizes,
+    pub backdrop: Backdrop,
+    pub motion: Motion,
+    pub spectrum: Spectrum,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Colors {
+    pub base: Color32,
+    pub surface: Color32,
+    pub surface_hover: Color32,
+    pub surface_selected: Color32,
+    pub accent: Color32,
+    pub text: Color32,
+    pub text_dim: Color32,
+    pub text_disabled: Color32,
+    pub border: Color32,
+    pub warning: Color32,
+    pub error: Color32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Shape {
+    pub radius_card: u8,
+    pub radius_button: u8,
+    pub radius_panel: u8,
+    pub spacing: f32,
+    pub padding: f32,
+    pub card_height: f32,
+    pub card_gap: f32,
+    pub playbar_height: f32,
+    pub list_width: f32,
+    pub mini_size: [f32; 2],
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TextSizes {
+    pub title: f32,
+    pub heading: f32,
+    pub body: f32,
+    pub small: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Backdrop {
+    /// 背景画像のぼかしの強さ（縮小率の逆数。大きいほど強くぼける）
+    pub blur: f32,
+    /// 背景画像を暗くする量（0.0〜1.0）
+    pub dim: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Motion {
+    pub hover_seconds: f32,
+    pub backdrop_crossfade_seconds: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Spectrum {
+    pub bars: usize,
+    pub gap: f32,
+    pub height: f32,
+    pub mini_height: f32,
+    pub radius: u8,
+    /// 1 秒あたりに下がる量（0.0〜1.0 の振幅に対する割合）
+    pub decay_per_second: f32,
+    pub color_low: Color32,
+    pub color_high: Color32,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self::lazer()
+    }
+}
+
+impl Theme {
+    /// osu!lazer の雰囲気に寄せた内蔵テーマ（濃い紫紺の背景とピンクのアクセント）
+    pub fn lazer() -> Self {
+        Self {
+            name: "lazer".to_owned(),
+            colors: Colors {
+                base: Color32::from_rgb(0x1c, 0x17, 0x27),
+                surface: Color32::from_rgb(0x2a, 0x24, 0x38),
+                surface_hover: Color32::from_rgb(0x35, 0x2d, 0x47),
+                surface_selected: Color32::from_rgb(0x43, 0x3a, 0x5c),
+                accent: Color32::from_rgb(0xff, 0x66, 0xaa),
+                text: Color32::from_rgb(0xff, 0xff, 0xff),
+                text_dim: Color32::from_rgb(0xb8, 0xb0, 0xcc),
+                text_disabled: Color32::from_rgb(0x6d, 0x65, 0x85),
+                border: Color32::from_rgb(0x3b, 0x33, 0x50),
+                warning: Color32::from_rgb(0xff, 0xcc, 0x22),
+                error: Color32::from_rgb(0xff, 0x55, 0x66),
+            },
+            shape: Shape {
+                radius_card: 10,
+                radius_button: 8,
+                radius_panel: 14,
+                spacing: 8.0,
+                padding: 12.0,
+                card_height: 56.0,
+                card_gap: 6.0,
+                playbar_height: 72.0,
+                list_width: 440.0,
+                mini_size: [360.0, 120.0],
+            },
+            text: TextSizes {
+                title: 28.0,
+                heading: 20.0,
+                body: 15.0,
+                small: 12.0,
+            },
+            backdrop: Backdrop {
+                blur: 24.0,
+                dim: 0.65,
+            },
+            motion: Motion {
+                hover_seconds: 0.12,
+                backdrop_crossfade_seconds: 0.6,
+            },
+            spectrum: Spectrum {
+                bars: 64,
+                gap: 3.0,
+                height: 72.0,
+                mini_height: 24.0,
+                radius: 2,
+                decay_per_second: 1.6,
+                color_low: Color32::from_rgba_unmultiplied(0xff, 0x66, 0xaa, 0x90),
+                color_high: Color32::from_rgba_unmultiplied(0xaa, 0x88, 0xff, 0x90),
+            },
+        }
+    }
+
+    pub fn to_toml(&self) -> Result<String, toml::ser::Error> {
+        toml::to_string_pretty(self)
+    }
+
+    pub fn from_toml(source: &str) -> Result<Self, toml::de::Error> {
+        toml::from_str(source)
+    }
+
+    pub fn apply(&self, ctx: &egui::Context) {
+        ctx.set_theme(egui::Theme::Dark);
+        ctx.all_styles_mut(|style| self.apply_to_style(style));
+    }
+
+    fn apply_to_style(&self, style: &mut egui::Style) {
+        let c = &self.colors;
+        let s = &self.shape;
+
+        let visuals = &mut style.visuals;
+        *visuals = egui::Visuals::dark();
+        visuals.panel_fill = c.base;
+        visuals.window_fill = c.surface;
+        visuals.extreme_bg_color = c.base;
+        visuals.faint_bg_color = c.surface;
+        visuals.window_stroke = Stroke::new(1.0, c.border);
+        visuals.window_corner_radius = CornerRadius::same(s.radius_panel);
+        visuals.menu_corner_radius = CornerRadius::same(s.radius_button);
+        visuals.hyperlink_color = c.accent;
+        visuals.warn_fg_color = c.warning;
+        visuals.error_fg_color = c.error;
+        visuals.selection.bg_fill = c.accent.gamma_multiply(0.35);
+        visuals.selection.stroke = Stroke::new(1.0, c.accent);
+
+        let radius = CornerRadius::same(s.radius_button);
+        let widgets = &mut visuals.widgets;
+        widgets.noninteractive.bg_fill = c.surface;
+        widgets.noninteractive.weak_bg_fill = c.surface;
+        widgets.noninteractive.bg_stroke = Stroke::new(1.0, c.border);
+        widgets.noninteractive.fg_stroke = Stroke::new(1.0, c.text_dim);
+        for (state, fill) in [
+            (&mut widgets.inactive, c.surface),
+            (&mut widgets.hovered, c.surface_hover),
+            (&mut widgets.active, c.surface_selected),
+            (&mut widgets.open, c.surface_selected),
+        ] {
+            state.bg_fill = fill;
+            state.weak_bg_fill = fill;
+            state.bg_stroke = Stroke::NONE;
+            state.fg_stroke = Stroke::new(1.0, c.text);
+        }
+        for state in [
+            &mut widgets.noninteractive,
+            &mut widgets.inactive,
+            &mut widgets.hovered,
+            &mut widgets.active,
+            &mut widgets.open,
+        ] {
+            state.corner_radius = radius;
+        }
+
+        style.spacing.item_spacing = vec2(s.spacing, s.spacing);
+        style.spacing.button_padding = vec2(s.padding, s.spacing * 0.5);
+
+        let t = &self.text;
+        let proportional = |size: f32| FontId::new(size, FontFamily::Proportional);
+        style
+            .text_styles
+            .insert(TextStyle::Heading, proportional(t.heading));
+        style
+            .text_styles
+            .insert(TextStyle::Body, proportional(t.body));
+        style
+            .text_styles
+            .insert(TextStyle::Button, proportional(t.body));
+        style
+            .text_styles
+            .insert(TextStyle::Small, proportional(t.small));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toml_round_trip() {
+        let theme = Theme::lazer();
+        let text = theme.to_toml().unwrap();
+        assert_eq!(Theme::from_toml(&text).unwrap(), theme);
+    }
+
+    #[test]
+    fn partial_theme_falls_back_to_default() {
+        let theme = Theme::from_toml("name = \"custom\"").unwrap();
+        assert_eq!(theme.name, "custom");
+        assert_eq!(theme.colors, Theme::lazer().colors);
+    }
+}
