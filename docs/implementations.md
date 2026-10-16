@@ -113,11 +113,11 @@ listenosu/
 
 ## Phase 3: ライブラリ読み取り（C# ヘルパー）
 
-- [ ] ヘルパーとの通信プロトコル（JSON Lines）を定義する：`snapshot`、`changed`、`error`、`version`
-- [ ] ヘルパーで BeatmapSet / Beatmap / Metadata / Files / Collection を読み、JSON に変換する
+- [x] ヘルパーとの通信プロトコル（JSON Lines）を定義する：`snapshot`、`changed`、`error`、`version`（[helper-protocol.md](helper-protocol.md)）
+- [x] ヘルパーで BeatmapSet / Beatmap / Metadata / Files / Collection を読み、JSON に変換する（`helper/Helper/`。手元の lazer で 48 曲を読めた。Collection は手元が 0 件で中身は未確認）
 - [ ] Rust 側で子プロセスの起動、監視、異常終了時の再起動を実装する
 - [ ] lazer のデータフォルダを自動検出する（OS ごとの既定の場所、storage.ini）
-- [ ] 音声ハッシュ単位で重複をまとめ、Hidden / DeletePending を除外する
+- [x] 音声ハッシュ単位で重複をまとめ、Hidden / DeletePending を除外する（ヘルパー側。自動テストは未作成）
 - [ ] 検索（全フィールドの AND 検索）と並べ替えを実装する
 - [ ] 曲一覧をキャッシュし、DB を読めないときはキャッシュで代用する
 - [ ] 独自プレイリストの保存と読み込み（音声ハッシュ＋曲情報の控え）
@@ -198,3 +198,4 @@ listenosu/
   - **配布サイズ（win-x64）**: 自己完結 81.6 MB（zip 37.2 MB）、自己完結 + trim 24.9 MB（zip 11.3 MB）、NativeAOT 31.1 MB（pdb を除くと約 9.0 MB、zip 8.8 MB）。まず自己完結 + trim を採用する。NativeAOT は Realm の AOT 対応が公式に確認できないため、Phase 3 の全機能で動くかを確かめてから決める。ビルドには、実行ユーザーのセッションで vswhere に PATH が通っている必要がある
   - **kira**: シーク（mp3 / ogg / wav）は動くが、位置が追従するまで約 385 ms かかるため、UI はシーク先を即座に表示する。終了検出は状態でなく位置で行う（長い曲は終端近くへのシーク後に `Stopped` にならず、位置が最後で止まる）。曲間の隙間は予約方式で再生側の遅れが約 10 ms 以下で、先頭の無音は曲による（mp3 で 38〜131 ms、ogg で 371 ms、wav で 0 ms）。クロスフェードは kira の音量 Tween が dB 補間で中間が抜けるため、20 ms ごとに cos / sin の曲線で音量を設定する。スペクトラムは main トラックのエフェクトで混合後の音をロックなしのリングバッファに書き出し、2048 点の FFT を 64 帯域にまとめて、1 フレーム平均 18 µs（CPU の 0.11%）
   - **未確認**: lazer 起動中の読み取りと、インポート中の連続読み取りで壊れた読み取りが無いこと（読み取りは lazer の書き込みと調整しないため）。macOS。flac。Collections の中身（手元は 0 件）。lazer 起動中の確認手順は `helper/Spike` の `head` と `dump`（読み取りのみ）を使う
+- 2026-10-17: Phase 3 を開始した。プロトコルを [helper-protocol.md](helper-protocol.md) に定義し、ヘルパー本体を `helper/Helper/`（`listenosu-helper`）に実装した。`open` / `refresh` / `quit` を受け、`version`・`snapshot`・`changed`・`error` を返す。更新は client.realm の先頭 24 バイトを 1 秒ごとに見て検知する。手元の lazer（停止中）で `snapshot` は 48 曲、約 0.5 秒、41 KB。`length_ms` が 0 の曲が 1 曲あった（UI 側で再生時の長さに置き換える）。lazer 起動中の読み取りは未確認
