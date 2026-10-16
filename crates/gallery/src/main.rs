@@ -228,11 +228,13 @@ impl Gallery {
 
     fn set_mini(&mut self, ctx: &egui::Context, mini: bool) {
         self.mini = mini;
-        let size = if mini {
-            self.theme.shape.mini_size
+        let shape = &self.theme.shape;
+        let (size, min) = if mini {
+            (shape.mini_size, shape.mini_size)
         } else {
-            FULL_SIZE
+            (FULL_SIZE, shape.min_size)
         };
+        ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min.into()));
         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size.into()));
     }
 
@@ -301,11 +303,14 @@ impl eframe::App for Gallery {
             self.show_mini(&ctx, ui);
             return;
         }
-        egui::Panel::left("theme_panel")
-            .default_size(300.0)
-            .show(ui, |ui| {
-                theme_panel::show(ui, &mut self.theme, &mut self.status)
-            });
+        // The tuning panel would take a third of a small window, so `main` leaves it out.
+        if !self.main_only {
+            egui::Panel::left("theme_panel")
+                .default_size(300.0)
+                .show(ui, |ui| {
+                    theme_panel::show(ui, &mut self.theme, &mut self.status)
+                });
+        }
         let dt = ctx.input(|i| i.stable_dt);
         let levels = self.spectrum_levels(dt);
         let theme = self.theme.clone();
@@ -390,18 +395,39 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "listenosu gallery",
         eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default().with_inner_size(if starts_mini() {
-                Theme::lazer().shape.mini_size
-            } else {
-                FULL_SIZE
-            }),
+            viewport: {
+                let shape = Theme::lazer().shape;
+                let (size, min) = if starts_mini() {
+                    (shape.mini_size, shape.mini_size)
+                } else {
+                    (FULL_SIZE, shape.min_size)
+                };
+                // e.g. GALLERY_SIZE=820x480 to open at an exact size.
+                let size = std::env::var("GALLERY_SIZE")
+                    .ok()
+                    .and_then(|v| {
+                        let (w, h) = v.split_once('x')?;
+                        Some([w.parse().ok()?, h.parse().ok()?])
+                    })
+                    .unwrap_or(size);
+                egui::ViewportBuilder::default()
+                    .with_inner_size(size)
+                    .with_min_inner_size(min)
+            },
             ..Default::default()
         },
         Box::new(|cc| {
             let mut gallery = Gallery::new(cc);
-            // The mini player has no list, so give it something to show.
-            if gallery.mini {
-                gallery.play(&cc.egui_ctx, 0);
+            // Start with the long title playing, to check truncation without clicking.
+            if gallery.mini || gallery.main_only {
+                gallery.play(&cc.egui_ctx, 6);
+            }
+            // e.g. GALLERY_SCALE=2 to check a high-DPI layout.
+            if let Some(scale) = std::env::var("GALLERY_SCALE")
+                .ok()
+                .and_then(|v| v.parse().ok())
+            {
+                cc.egui_ctx.set_pixels_per_point(scale);
             }
             Ok(Box::new(gallery))
         }),

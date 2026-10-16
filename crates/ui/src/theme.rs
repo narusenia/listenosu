@@ -50,6 +50,8 @@ pub struct Shape {
     pub playbar_height: f32,
     pub list_width: f32,
     pub mini_size: [f32; 2],
+    /// Smallest window of the main screen; the layout is checked down to this size.
+    pub min_size: [f32; 2],
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -129,6 +131,7 @@ impl Theme {
                 playbar_height: 72.0,
                 list_width: 440.0,
                 mini_size: [360.0, 120.0],
+                min_size: [820.0, 480.0],
             },
             text: TextSizes {
                 title: 28.0,
@@ -160,6 +163,20 @@ impl Theme {
     }
 
     /// Section heading: bold, heading size and full-brightness text.
+    /// Width of a `m:ss` label.
+    pub fn time_width(&self) -> f32 {
+        self.text.small * 3.5
+    }
+
+    /// Width of a short text button such as Mini / Full.
+    pub fn button_width(&self) -> f32 {
+        self.text.body * 3.5
+    }
+
+    pub fn volume_width(&self) -> f32 {
+        self.text.body * 7.0
+    }
+
     pub fn heading(&self, text: impl Into<String>) -> egui::RichText {
         egui::RichText::new(text)
             .font(crate::fonts::bold(self.text.heading))

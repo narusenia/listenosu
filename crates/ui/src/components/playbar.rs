@@ -19,10 +19,6 @@ pub struct PlaybarEvent {
     pub toggle_mini: bool,
 }
 
-const VOLUME_WIDTH: f32 = 96.0;
-const TIME_WIDTH: f32 = 40.0;
-const MINI_WIDTH: f32 = 48.0;
-
 pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> PlaybarEvent {
     let mut event = PlaybarEvent::default();
     let c = &theme.colors;
@@ -59,13 +55,16 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                     |text: String| RichText::new(text).size(theme.text.small).color(c.text_dim);
                 // Fixed width, so the seek bar width below adds up exactly.
                 let fixed = |ui: &mut egui::Ui, text: String| {
-                    ui.add_sized([TIME_WIDTH, theme.text.body], egui::Label::new(time(text)))
+                    ui.add_sized(
+                        [theme.time_width(), theme.text.body],
+                        egui::Label::new(time(text)),
+                    )
                 };
                 fixed(ui, mmss(player.position_secs));
                 let seek_width = ui.available_width()
-                    - VOLUME_WIDTH
-                    - TIME_WIDTH
-                    - MINI_WIDTH
+                    - theme.volume_width()
+                    - theme.time_width()
+                    - theme.button_width()
                     - theme.shape.spacing * 4.0;
                 let progress = if player.length_secs > 0.0 {
                     player.position_secs / player.length_secs
@@ -76,12 +75,12 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 event.seek_secs = seek.map(|fraction| fraction * player.length_secs);
                 fixed(ui, mmss(player.length_secs));
 
-                let (_, volume) = slider_bar(ui, theme, VOLUME_WIDTH, player.volume);
+                let (_, volume) = slider_bar(ui, theme, theme.volume_width(), player.volume);
                 event.volume = volume;
 
                 event.toggle_mini = ui
                     .add_sized(
-                        [MINI_WIDTH, theme.text.body * 1.6],
+                        [theme.button_width(), theme.text.body * 1.6],
                         egui::Button::new("Mini"),
                     )
                     .clicked();

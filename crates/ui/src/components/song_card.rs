@@ -41,7 +41,12 @@ pub fn song_card(
     let painter = ui.painter();
     painter.rect_filled(rect, radius, fill);
     if state.selected {
-        painter.rect_stroke(rect, radius, Stroke::new(1.5, c.text), StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            radius,
+            Stroke::new(theme.shape.spacing / 4.0, c.text),
+            StrokeKind::Inside,
+        );
     }
 
     let pad = theme.shape.padding;

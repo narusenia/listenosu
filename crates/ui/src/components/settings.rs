@@ -1,6 +1,5 @@
 use egui::{
-    Align, Color32, CornerRadius, Event, Frame, Key, Layout, Margin, Modifiers, Response, Sense,
-    vec2,
+    Align, CornerRadius, Event, Frame, Key, Layout, Margin, Modifiers, Response, Sense, vec2,
 };
 
 use crate::theme::Theme;
@@ -52,7 +51,7 @@ pub fn toggle(ui: &mut egui::Ui, theme: &Theme, on: &mut bool) -> Response {
     painter.circle_filled(
         egui::pos2(knob_x, rect.center().y),
         radius - theme.shape.spacing / 4.0,
-        Color32::WHITE,
+        c.text,
     );
     response
 }

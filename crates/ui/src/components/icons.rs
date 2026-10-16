@@ -40,7 +40,7 @@ pub fn icon_button(ui: &mut egui::Ui, theme: &Theme, icon: Icon, size: f32) -> R
                     center + vec2(dx, 0.0),
                     vec2(half * 0.7, half * 2.0),
                 );
-                painter.rect_filled(bar, 1.0, color);
+                painter.rect_filled(bar, theme.shape.spacing / 8.0, color);
             }
         }
         Icon::Up | Icon::Down => {
@@ -71,7 +71,7 @@ pub fn icon_button(ui: &mut egui::Ui, theme: &Theme, icon: Icon, size: f32) -> R
                 center + vec2(direction * half * 0.9, 0.0),
                 vec2(half * 0.4, half * 2.0),
             );
-            painter.rect_filled(bar, 1.0, color);
+            painter.rect_filled(bar, theme.shape.spacing / 8.0, color);
         }
     }
     response

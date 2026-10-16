@@ -1,4 +1,4 @@
-use egui::{Frame, Label, Margin, RichText, UiBuilder, pos2};
+use egui::{Align, Frame, Label, Layout, Margin, RichText, UiBuilder, pos2};
 
 use crate::backdrop::Backdrop;
 use crate::components::controls::slider_bar;
@@ -8,9 +8,6 @@ use crate::components::spectrum::spectrum;
 use crate::fonts;
 use crate::model::{PlayerView, SongView, mmss};
 use crate::theme::Theme;
-
-const TIME_WIDTH: f32 = 36.0;
-const FULL_WIDTH: f32 = 48.0;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct MiniEvent {
@@ -49,24 +46,31 @@ pub fn mini_player(
     Frame::NONE
         .inner_margin(Margin::same(theme.shape.padding as i8))
         .show(ui, |ui| {
-            if let Some(song) = song {
-                ui.add(
-                    Label::new(
-                        RichText::new(&song.title)
-                            .font(fonts::bold(theme.text.heading))
-                            .color(c.text),
-                    )
-                    .truncate(),
-                );
-                ui.add(
-                    Label::new(
-                        RichText::new(&song.artist)
-                            .size(theme.text.small)
-                            .color(c.text_dim),
-                    )
-                    .truncate(),
-                );
-            }
+            // Full button first, right-aligned; the title takes whatever width is left.
+            ui.horizontal(|ui| {
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    event.expand = ui
+                        .add_sized(
+                            [theme.button_width(), theme.text.body * 1.6],
+                            egui::Button::new("Full"),
+                        )
+                        .clicked();
+                    ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
+                        let Some(song) = song else { return };
+                        let mut truncated = |text: RichText| ui.add(Label::new(text).truncate());
+                        truncated(
+                            RichText::new(&song.title)
+                                .font(fonts::bold(theme.text.heading))
+                                .color(c.text),
+                        );
+                        truncated(
+                            RichText::new(&song.artist)
+                                .size(theme.text.small)
+                                .color(c.text_dim),
+                        );
+                    });
+                });
+            });
 
             let button = theme.shape.playbar_height * 0.45;
             ui.horizontal(|ui| {
@@ -82,7 +86,7 @@ pub fn mini_player(
 
                 let time = |ui: &mut egui::Ui, secs: f32| {
                     ui.add_sized(
-                        [TIME_WIDTH, theme.text.body],
+                        [theme.time_width(), theme.text.body],
                         Label::new(
                             RichText::new(mmss(secs))
                                 .size(theme.text.small)
@@ -92,7 +96,7 @@ pub fn mini_player(
                 };
                 time(ui, player.position_secs);
                 let seek_width =
-                    ui.available_width() - TIME_WIDTH - FULL_WIDTH - theme.shape.spacing * 3.0;
+                    ui.available_width() - theme.time_width() - theme.shape.spacing * 2.0;
                 let progress = if player.length_secs > 0.0 {
                     player.position_secs / player.length_secs
                 } else {
@@ -101,9 +105,6 @@ pub fn mini_player(
                 let (_, seek) = slider_bar(ui, theme, seek_width.max(0.0), progress);
                 pb.seek_secs = seek.map(|fraction| fraction * player.length_secs);
                 time(ui, player.length_secs);
-                event.expand = ui
-                    .add_sized([FULL_WIDTH, button], egui::Button::new("Full"))
-                    .clicked();
             });
         });
 
