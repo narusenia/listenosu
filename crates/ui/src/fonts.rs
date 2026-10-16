@@ -10,6 +10,10 @@ const NOTO_SANS_JP: &[u8] =
 const REGULAR_WEIGHT: f32 = 400.0;
 const BOLD_WEIGHT: f32 = 700.0;
 
+/// egui centers the height difference between fallback fonts, which leaves Noto Sans JP's
+/// baseline 0.107 em below Nunito's (from their hhea / typo metrics). Raise it to match.
+const NOTO_SANS_JP_Y_OFFSET: f32 = -0.107;
+
 const BOLD_FAMILY: &str = "bold";
 
 pub fn bold_family() -> FontFamily {
@@ -24,16 +28,27 @@ pub fn bold(size: f32) -> FontId {
 /// thinnest one, so each weight is registered explicitly as a separate font.
 pub fn install(ctx: &egui::Context) {
     let faces = [
-        ("nunito-regular", NUNITO, REGULAR_WEIGHT),
-        ("nunito-bold", NUNITO, BOLD_WEIGHT),
-        ("noto-sans-jp-regular", NOTO_SANS_JP, REGULAR_WEIGHT),
-        ("noto-sans-jp-bold", NOTO_SANS_JP, BOLD_WEIGHT),
+        ("nunito-regular", NUNITO, REGULAR_WEIGHT, 0.0),
+        ("nunito-bold", NUNITO, BOLD_WEIGHT, 0.0),
+        (
+            "noto-sans-jp-regular",
+            NOTO_SANS_JP,
+            REGULAR_WEIGHT,
+            NOTO_SANS_JP_Y_OFFSET,
+        ),
+        (
+            "noto-sans-jp-bold",
+            NOTO_SANS_JP,
+            BOLD_WEIGHT,
+            NOTO_SANS_JP_Y_OFFSET,
+        ),
     ];
 
     let mut fonts = FontDefinitions::default();
-    for (key, bytes, weight) in faces {
+    for (key, bytes, weight, y_offset_factor) in faces {
         let tweak = FontTweak {
             coords: VariationCoords::new([(b"wght", weight)]),
+            y_offset_factor,
             ..Default::default()
         };
         fonts.font_data.insert(
