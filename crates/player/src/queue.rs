@@ -112,6 +112,41 @@ impl<T> Queue<T> {
         };
     }
 
+    /// Swaps two items. The cursor and the play order keep following the same tracks.
+    pub fn swap(&mut self, a: usize, b: usize) {
+        if a >= self.items.len() || b >= self.items.len() || a == b {
+            return;
+        }
+        self.items.swap(a, b);
+        if self.shuffle {
+            for i in &mut self.order {
+                if *i == a {
+                    *i = b;
+                } else if *i == b {
+                    *i = a;
+                }
+            }
+        } else if let Some(c) = self.cursor {
+            // Unshuffled, the order is the item order, so the cursor moves with the track.
+            self.cursor = Some(if c == a {
+                b
+            } else if c == b {
+                a
+            } else {
+                c
+            });
+        }
+    }
+
+    pub fn clear(&mut self) {
+        *self = Self {
+            shuffle: self.shuffle,
+            repeat: self.repeat,
+            seed: self.seed,
+            ..Self::default()
+        };
+    }
+
     /// The next track to play, or `None` when the queue is over (the cursor stays on the last track).
     pub fn advance(&mut self, how: Advance) -> Option<usize> {
         let cursor = self.cursor?;
@@ -311,6 +346,40 @@ mod tests {
         q.push(9);
         assert_eq!(play_out(&mut q, Advance::Auto), [0, 1, 2]);
         assert_eq!(q.items()[2], 9);
+    }
+
+    #[test]
+    fn swapping_keeps_the_current_track_current_and_the_play_order_of_tracks() {
+        let mut q = queue(4, 1);
+        q.swap(1, 2);
+        assert_eq!(q.items(), [0, 2, 1, 3]);
+        assert_eq!(q.items()[q.current().unwrap()], 1);
+        assert_eq!(q.advance(Advance::Manual).map(|i| q.items()[i]), Some(3));
+
+        let mut q = queue(6, 0);
+        q.set_shuffle(true);
+        let before: Vec<usize> = play_out(&mut q.clone(), Advance::Auto)
+            .iter()
+            .map(|&i| q.items()[i])
+            .collect();
+        q.swap(1, 4);
+        let after: Vec<usize> = play_out(&mut q.clone(), Advance::Auto)
+            .iter()
+            .map(|&i| q.items()[i])
+            .collect();
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn clear_empties_the_queue_but_keeps_the_modes() {
+        let mut q = queue(3, 0);
+        q.set_repeat(Repeat::All);
+        q.set_shuffle(true);
+        q.clear();
+        assert_eq!(
+            (q.current(), q.items().len(), q.repeat(), q.shuffle()),
+            (None, 0, Repeat::All, true)
+        );
     }
 
     #[test]

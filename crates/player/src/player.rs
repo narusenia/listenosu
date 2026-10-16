@@ -205,6 +205,32 @@ impl<T> Player<T> {
         self.queue.push(item);
     }
 
+    /// Removes a queue item. Removing the playing track moves on to the next one.
+    pub fn remove(&mut self, index: usize) {
+        let playing = self.queue.current() == Some(index) && self.current.is_some();
+        self.queue.remove(index);
+        if !playing {
+            return;
+        }
+        match self.queue.current() {
+            Some(next) => self.begin(next, MANUAL_FADE, false),
+            None => {
+                self.stop_all();
+                self.events.push(Event::Finished);
+            }
+        }
+    }
+
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.queue.swap(a, b);
+    }
+
+    /// Stops playback and empties the queue.
+    pub fn clear(&mut self) {
+        self.queue.clear();
+        self.stop_all();
+    }
+
     pub fn next(&mut self) {
         if let Some(index) = self.queue.advance(Advance::Manual) {
             self.begin(index, MANUAL_FADE, false);
