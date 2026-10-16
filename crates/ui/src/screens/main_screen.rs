@@ -63,8 +63,26 @@ pub fn main_screen(
         .default_size(theme.shape.list_width)
         .show(ui, |ui| {
             let mut changed = search_bar(ui, theme, &mut state.query, input.songs.len()).changed();
-            changed |= dropdown(ui, "view", "View", &mut state.view, input.view_options);
-            changed |= dropdown(ui, "sort", "Sort", &mut state.sort, input.sort_options);
+            // View and Sort share one row, half of the width each.
+            ui.horizontal(|ui| {
+                let half = (ui.available_width() - ui.spacing().item_spacing.x) / 2.0;
+                changed |= dropdown(
+                    ui,
+                    "view",
+                    "View",
+                    &mut state.view,
+                    input.view_options,
+                    Some(half),
+                );
+                changed |= dropdown(
+                    ui,
+                    "sort",
+                    "Sort",
+                    &mut state.sort,
+                    input.sort_options,
+                    Some(half),
+                );
+            });
             if changed {
                 state.selected = None;
                 event.list_changed = true;
