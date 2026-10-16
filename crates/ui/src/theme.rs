@@ -72,6 +72,7 @@ pub struct Backdrop {
 pub struct Motion {
     pub hover_seconds: f32,
     pub backdrop_crossfade_seconds: f32,
+    pub toast_seconds: f32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -140,6 +141,7 @@ impl Theme {
             motion: Motion {
                 hover_seconds: 0.12,
                 backdrop_crossfade_seconds: 0.6,
+                toast_seconds: 4.0,
             },
             spectrum: Spectrum {
                 bars: 64,

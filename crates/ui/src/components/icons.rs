@@ -8,6 +8,9 @@ pub enum Icon {
     Pause,
     Prev,
     Next,
+    Up,
+    Down,
+    Close,
 }
 
 /// Round icon button. Glyphs are painted as shapes so they do not depend on any font.
@@ -39,6 +42,21 @@ pub fn icon_button(ui: &mut egui::Ui, theme: &Theme, icon: Icon, size: f32) -> R
                 );
                 painter.rect_filled(bar, 1.0, color);
             }
+        }
+        Icon::Up | Icon::Down => {
+            let direction = if icon == Icon::Down { 1.0 } else { -1.0 };
+            let tip = |dx: f32, dy: f32| center + vec2(dx * half, direction * dy * half);
+            let points = vec![tip(-1.0, -0.5), tip(0.0, 0.5), tip(1.0, -0.5)];
+            painter.add(Shape::line(
+                points,
+                Stroke::new(theme.shape.spacing / 4.0, color),
+            ));
+        }
+        Icon::Close => {
+            let stroke = Stroke::new(theme.shape.spacing / 4.0, color);
+            let corner = |dx: f32, dy: f32| center + vec2(dx * half * 0.8, dy * half * 0.8);
+            painter.line_segment([corner(-1.0, -1.0), corner(1.0, 1.0)], stroke);
+            painter.line_segment([corner(-1.0, 1.0), corner(1.0, -1.0)], stroke);
         }
         Icon::Prev | Icon::Next => {
             let direction = if icon == Icon::Next { 1.0 } else { -1.0 };

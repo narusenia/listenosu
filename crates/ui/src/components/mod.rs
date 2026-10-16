@@ -1,7 +1,11 @@
 pub mod controls;
 pub mod icons;
 pub mod info_panel;
+pub mod notice;
 pub mod playbar;
+pub mod playlist_editor;
+pub mod settings;
 pub mod song_card;
 pub mod song_list;
+pub mod song_rows;
 pub mod spectrum;
