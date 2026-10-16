@@ -1,7 +1,7 @@
 use egui::{CentralPanel, Frame, Margin, Panel};
 
 use crate::backdrop::Backdrop;
-use crate::components::controls::{dropdown, search_bar};
+use crate::components::controls::{dropdown_inline, search_bar};
 use crate::components::info_panel::info_panel;
 use crate::components::playbar::{PlaybarEvent, playbar};
 use crate::components::song_list::{ListEvent, song_list};
@@ -66,7 +66,7 @@ pub fn main_screen(
             // View and Sort share one row, half of the width each.
             ui.horizontal(|ui| {
                 let half = (ui.available_width() - ui.spacing().item_spacing.x) / 2.0;
-                changed |= dropdown(
+                changed |= dropdown_inline(
                     ui,
                     "view",
                     "View",
@@ -74,7 +74,7 @@ pub fn main_screen(
                     input.view_options,
                     Some(half),
                 );
-                changed |= dropdown(
+                changed |= dropdown_inline(
                     ui,
                     "sort",
                     "Sort",

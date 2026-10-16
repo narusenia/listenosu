@@ -55,7 +55,7 @@ pub fn settings_screen(
                 section(ui, theme, "Display");
                 setting_row(ui, theme, "Language", |ui| {
                     let options = LANGUAGES.map(String::from);
-                    dropdown(ui, "language", "", &mut state.language, &options, None);
+                    dropdown(ui, "language", "", &mut state.language, &options);
                 });
                 setting_row(ui, theme, "Show romanized titles and artists", |ui| {
                     toggle(ui, theme, &mut state.romanized);
