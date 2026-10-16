@@ -1,10 +1,18 @@
+mod mock;
+
 use eframe::egui;
 use ui::Theme;
+use ui::components::song_card::{CardState, song_card};
+use ui::components::song_list::song_list;
+use ui::model::SongView;
 
 struct Gallery {
     theme: Theme,
     applied: Option<Theme>,
     status: String,
+    songs: Vec<SongView>,
+    selected: Option<usize>,
+    playing: Option<usize>,
 }
 
 impl Gallery {
@@ -14,6 +22,9 @@ impl Gallery {
             theme: Theme::lazer(),
             applied: None,
             status: String::new(),
+            songs: mock::songs(5000),
+            selected: None,
+            playing: None,
         }
     }
 
@@ -50,9 +61,12 @@ impl Gallery {
             ui.strong("Colors");
             for (label, color) in [
                 ("base", &mut colors.base),
+                ("chrome", &mut colors.chrome),
                 ("surface", &mut colors.surface),
                 ("surface_hover", &mut colors.surface_hover),
                 ("surface_selected", &mut colors.surface_selected),
+                ("primary", &mut colors.primary),
+                ("primary_light", &mut colors.primary_light),
                 ("accent", &mut colors.accent),
                 ("text", &mut colors.text),
                 ("text_dim", &mut colors.text_dim),
@@ -152,6 +166,45 @@ impl Gallery {
                 .color(self.theme.colors.text_dim),
         );
         ui.small("Small: 180 BPM · 3:45");
+
+        ui.add_space(self.theme.shape.padding);
+        ui.heading("Song card");
+        let samples = [
+            ("normal", CardState::default(), false),
+            (
+                "selected",
+                CardState {
+                    selected: true,
+                    playing: false,
+                },
+                false,
+            ),
+            (
+                "playing",
+                CardState {
+                    selected: false,
+                    playing: true,
+                },
+                false,
+            ),
+            (
+                "selected + playing",
+                CardState {
+                    selected: true,
+                    playing: true,
+                },
+                false,
+            ),
+            ("missing file", CardState::default(), true),
+        ];
+        for (label, state, missing) in samples {
+            ui.small(label);
+            let mut song = self.songs[0].clone();
+            song.missing = missing;
+            song_card(ui, &self.theme, &song, state);
+        }
+        ui.small("long title");
+        song_card(ui, &self.theme, &self.songs[6], CardState::default());
     }
 }
 
@@ -162,6 +215,18 @@ impl eframe::App for Gallery {
         egui::Panel::left("theme_panel")
             .default_size(300.0)
             .show(ui, |ui| self.theme_panel(ui));
+        egui::Panel::right("song_list")
+            .default_size(self.theme.shape.list_width)
+            .show(ui, |ui| {
+                ui.label(format!("{} songs", self.songs.len()));
+                let event = song_list(ui, &self.theme, &self.songs, self.selected, self.playing);
+                if event.clicked.is_some() {
+                    self.selected = event.clicked;
+                }
+                if event.activated.is_some() {
+                    self.playing = event.activated;
+                }
+            });
         egui::CentralPanel::default().show(ui, |ui| self.preview(ui));
     }
 }
@@ -169,7 +234,10 @@ impl eframe::App for Gallery {
 fn main() -> eframe::Result {
     eframe::run_native(
         "listenosu gallery",
-        eframe::NativeOptions::default(),
+        eframe::NativeOptions {
+            viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 800.0]),
+            ..Default::default()
+        },
         Box::new(|cc| Ok(Box::new(Gallery::new(cc)))),
     )
 }
