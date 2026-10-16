@@ -21,7 +21,10 @@ pub struct MainState {
 pub struct MainInput<'a> {
     /// The filtered, sorted list as shown.
     pub songs: &'a [SongView],
+    /// Row of the playing song in `songs`, if it is shown.
     pub playing: Option<usize>,
+    /// The playing song for the info panel, even when the search hides it from the list.
+    pub now_playing: Option<&'a SongView>,
     pub player: &'a PlayerView,
     /// Smoothed spectrum bar levels, 0.0 to 1.0.
     pub spectrum: &'a [f32],
@@ -77,7 +80,7 @@ pub fn main_screen(
         Frame::NONE
             .inner_margin(Margin::same(theme.shape.padding as i8))
             .show(ui, |ui| {
-                if let Some(song) = input.playing.and_then(|i| input.songs.get(i)) {
+                if let Some(song) = input.now_playing {
                     info_panel(ui, theme, song);
                 }
                 extra(ui);

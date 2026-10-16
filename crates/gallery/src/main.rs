@@ -382,6 +382,7 @@ impl eframe::App for Gallery {
         let input = MainInput {
             songs: &visible,
             playing: self.playing,
+            now_playing: self.playing.and_then(|i| visible.get(i)),
             player: &player,
             spectrum: &levels,
             view_options: &view_options,

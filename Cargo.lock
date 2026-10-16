@@ -1717,6 +1717,8 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -1949,6 +1951,11 @@ name = "listenosu"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "image",
+ "library",
+ "player",
+ "serde",
+ "serde_json",
  "ui",
 ]
 
