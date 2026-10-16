@@ -12,6 +12,7 @@ use ui::components::song_card::{CardState, song_card};
 use ui::components::spectrum::SpectrumSmoother;
 use ui::model::{PlayerView, Repeat, SongView};
 use ui::screens::main_screen::{MainEvent, MainInput, MainState, main_screen};
+use ui::screens::mini_player::mini_player;
 
 const VIEW_OPTIONS: [&str; 3] = ["All songs", "Collection: Favorites", "Playlist: Work BGM"];
 const SORT_OPTIONS: [&str; 6] = [
@@ -43,6 +44,8 @@ struct Gallery {
     sort_options: Vec<String>,
     /// Show only the main screen (`cargo run -p gallery -- main`), without the component tabs.
     main_only: bool,
+    /// Showing the mini player (`cargo run -p gallery -- mini` starts there).
+    mini: bool,
     playing: Option<usize>,
 
     player: PlayerView,
@@ -65,6 +68,7 @@ impl Gallery {
                 .and_then(|arg| sections::Section::from_arg(&arg))
                 .unwrap_or_default(),
             main_only: std::env::args().nth(1).as_deref() == Some("main"),
+            mini: starts_mini(),
             extras: sections::Extras::new(&songs),
             theme: Theme::lazer(),
             applied: None,
@@ -199,7 +203,37 @@ impl Gallery {
         if let Some(index) = event.list.activated {
             self.play(ctx, index);
         }
+        if event.playbar.toggle_mini {
+            self.set_mini(ctx, true);
+        }
         self.apply_playbar(ctx, event.playbar);
+    }
+
+    fn show_mini(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let levels = self.spectrum_levels(ctx.input(|i| i.stable_dt));
+        let song = self.playing.and_then(|i| self.visible.get(i));
+        let event = mini_player(
+            ui,
+            &self.theme,
+            &mut self.backdrop,
+            song,
+            &self.player,
+            &levels,
+        );
+        self.apply_playbar(ctx, event.playbar);
+        if event.expand {
+            self.set_mini(ctx, false);
+        }
+    }
+
+    fn set_mini(&mut self, ctx: &egui::Context, mini: bool) {
+        self.mini = mini;
+        let size = if mini {
+            self.theme.shape.mini_size
+        } else {
+            FULL_SIZE
+        };
+        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size.into()));
     }
 
     fn apply_playbar(&mut self, ctx: &egui::Context, event: PlaybarEvent) {
@@ -263,6 +297,10 @@ impl eframe::App for Gallery {
         self.sync_theme(&ctx);
         self.advance_clock(&ctx);
 
+        if self.mini {
+            self.show_mini(&ctx, ui);
+            return;
+        }
         egui::Panel::left("theme_panel")
             .default_size(300.0)
             .show(ui, |ui| {
@@ -342,13 +380,30 @@ fn load_images() -> Vec<Image> {
         .collect()
 }
 
+const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
+
+fn starts_mini() -> bool {
+    std::env::args().nth(1).as_deref() == Some("mini")
+}
+
 fn main() -> eframe::Result {
     eframe::run_native(
         "listenosu gallery",
         eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default().with_inner_size([1400.0, 860.0]),
+            viewport: egui::ViewportBuilder::default().with_inner_size(if starts_mini() {
+                Theme::lazer().shape.mini_size
+            } else {
+                FULL_SIZE
+            }),
             ..Default::default()
         },
-        Box::new(|cc| Ok(Box::new(Gallery::new(cc)))),
+        Box::new(|cc| {
+            let mut gallery = Gallery::new(cc);
+            // The mini player has no list, so give it something to show.
+            if gallery.mini {
+                gallery.play(&cc.egui_ctx, 0);
+            }
+            Ok(Box::new(gallery))
+        }),
     )
 }
