@@ -7,13 +7,11 @@ use std::path::Path;
 use eframe::egui;
 use ui::Theme;
 use ui::backdrop::Backdrop;
-use ui::components::controls::{dropdown, search_bar};
-use ui::components::info_panel::info_panel;
-use ui::components::playbar::playbar;
+use ui::components::playbar::PlaybarEvent;
 use ui::components::song_card::{CardState, song_card};
-use ui::components::song_list::song_list;
-use ui::components::spectrum::{SpectrumSmoother, spectrum};
+use ui::components::spectrum::SpectrumSmoother;
 use ui::model::{PlayerView, Repeat, SongView};
+use ui::screens::main_screen::{MainEvent, MainInput, MainState, main_screen};
 
 const VIEW_OPTIONS: [&str; 3] = ["All songs", "Collection: Favorites", "Playlist: Work BGM"];
 const SORT_OPTIONS: [&str; 6] = [
@@ -40,10 +38,11 @@ struct Gallery {
 
     songs: Vec<SongView>,
     visible: Vec<SongView>,
-    query: String,
-    view: usize,
-    sort: usize,
-    selected: Option<usize>,
+    main: MainState,
+    view_options: Vec<String>,
+    sort_options: Vec<String>,
+    /// Show only the main screen (`cargo run -p gallery -- main`), without the component tabs.
+    main_only: bool,
     playing: Option<usize>,
 
     player: PlayerView,
@@ -65,16 +64,19 @@ impl Gallery {
                 .nth(1)
                 .and_then(|arg| sections::Section::from_arg(&arg))
                 .unwrap_or_default(),
+            main_only: std::env::args().nth(1).as_deref() == Some("main"),
             extras: sections::Extras::new(&songs),
             theme: Theme::lazer(),
             applied: None,
             status: String::new(),
             visible: songs.clone(),
             songs,
-            query: String::new(),
-            view: 0,
-            sort: 2,
-            selected: None,
+            main: MainState {
+                sort: 2,
+                ..Default::default()
+            },
+            view_options: VIEW_OPTIONS.map(String::from).to_vec(),
+            sort_options: SORT_OPTIONS.map(String::from).to_vec(),
             playing: None,
             player: PlayerView {
                 playing: false,
@@ -122,7 +124,7 @@ impl Gallery {
 
     /// Re-filters and re-sorts the list; the real search lives in the library crate.
     fn refresh_list(&mut self) {
-        let query = self.query.to_lowercase();
+        let query = self.main.query.to_lowercase();
         self.visible = self
             .songs
             .iter()
@@ -131,7 +133,7 @@ impl Gallery {
             })
             .cloned()
             .collect();
-        match self.sort {
+        match self.main.sort {
             0 => self.visible.sort_by(|a, b| a.title.cmp(&b.title)),
             1 => self.visible.sort_by(|a, b| a.artist.cmp(&b.artist)),
             3 => self.visible.sort_by_key(|s| s.length_secs),
@@ -139,7 +141,6 @@ impl Gallery {
             5 => self.visible.reverse(),
             _ => {}
         }
-        self.selected = None;
         self.playing = None;
     }
 
@@ -151,7 +152,7 @@ impl Gallery {
         self.player.position_secs = 0.0;
         self.player.playing = true;
         self.playing = Some(index);
-        self.selected = Some(index);
+        self.main.selected = Some(index);
         if !self.images.is_empty() {
             self.set_backdrop(ctx, index % self.images.len());
         }
@@ -191,22 +192,42 @@ impl Gallery {
             .to_vec()
     }
 
-    fn list_panel(&mut self, ui: &mut egui::Ui) {
-        let mut changed =
-            search_bar(ui, &self.theme, &mut self.query, self.visible.len()).changed();
-        let options = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<_>>();
-        changed |= dropdown(ui, "view", "View", &mut self.view, &options(&VIEW_OPTIONS));
-        changed |= dropdown(ui, "sort", "Sort", &mut self.sort, &options(&SORT_OPTIONS));
-        if changed {
+    fn apply_events(&mut self, ctx: &egui::Context, event: MainEvent) {
+        if event.list_changed {
             self.refresh_list();
         }
-
-        let event = song_list(ui, &self.theme, &self.visible, self.selected, self.playing);
-        if event.clicked.is_some() {
-            self.selected = event.clicked;
+        if let Some(index) = event.list.activated {
+            self.play(ctx, index);
         }
-        if let Some(index) = event.activated {
-            self.play(ui.ctx(), index);
+        self.apply_playbar(ctx, event.playbar);
+    }
+
+    fn apply_playbar(&mut self, ctx: &egui::Context, event: PlaybarEvent) {
+        let player = &mut self.player;
+        if event.toggle_play {
+            player.playing = !player.playing;
+        }
+        if event.toggle_shuffle {
+            player.shuffle = !player.shuffle;
+        }
+        if event.cycle_repeat {
+            player.repeat = player.repeat.next();
+        }
+        if let Some(secs) = event.seek_secs {
+            player.position_secs = secs;
+        }
+        if let Some(volume) = event.volume {
+            player.volume = volume;
+        }
+        if event.next
+            && let Some(index) = self.playing
+        {
+            self.play(ctx, (index + 1) % self.visible.len());
+        }
+        if event.prev
+            && let Some(index) = self.playing
+        {
+            self.play(ctx, index.saturating_sub(1));
         }
     }
 
@@ -214,14 +235,6 @@ impl Gallery {
         ui.label(self.theme.heading("listenosu gallery"));
         ui.label("Regular: The quick brown fox jumps over the lazy dog. 0123456789");
         ui.label("日本語の表示確認：作業用BGMを流し聴きする。ひらがな・カタカナ・漢字。");
-
-        ui.add_space(self.theme.shape.padding);
-        ui.label(self.theme.heading("Info panel"));
-        if let Some(song) = self.playing.and_then(|i| self.visible.get(i)) {
-            info_panel(ui, &self.theme, song);
-        } else {
-            ui.label("Double-click a song in the list to play it.");
-        }
 
         ui.add_space(self.theme.shape.padding);
         ui.label(self.theme.heading("Song card"));
@@ -255,71 +268,51 @@ impl eframe::App for Gallery {
             .show(ui, |ui| {
                 theme_panel::show(ui, &mut self.theme, &mut self.status)
             });
-        egui::Panel::bottom("playbar")
-            .frame(egui::Frame::NONE)
-            .show(ui, |ui| {
-                let event = playbar(ui, &self.theme, &self.player);
-                let player = &mut self.player;
-                if event.toggle_play {
-                    player.playing = !player.playing;
-                }
-                if event.toggle_shuffle {
-                    player.shuffle = !player.shuffle;
-                }
-                if event.cycle_repeat {
-                    player.repeat = player.repeat.next();
-                }
-                if let Some(secs) = event.seek_secs {
-                    player.position_secs = secs;
-                }
-                if let Some(volume) = event.volume {
-                    player.volume = volume;
-                }
-                if event.next
-                    && let Some(index) = self.playing
-                {
-                    self.play(&ctx, (index + 1) % self.visible.len());
-                }
-                if event.prev
-                    && let Some(index) = self.playing
-                {
-                    self.play(&ctx, index.saturating_sub(1));
+        let dt = ctx.input(|i| i.stable_dt);
+        let levels = self.spectrum_levels(dt);
+        let theme = self.theme.clone();
+        let visible = std::mem::take(&mut self.visible);
+        let mut state = std::mem::take(&mut self.main);
+        let (view_options, sort_options) = (self.view_options.clone(), self.sort_options.clone());
+        let player = self.player.clone();
+        let mut backdrop = std::mem::take(&mut self.backdrop);
+        let input = MainInput {
+            songs: &visible,
+            playing: self.playing,
+            player: &player,
+            spectrum: &levels,
+            view_options: &view_options,
+            sort_options: &sort_options,
+        };
+        let main_only = self.main_only;
+        let event = main_screen(ui, &theme, &mut backdrop, &mut state, &input, |ui| {
+            if main_only {
+                return;
+            }
+            ui.horizontal(|ui| {
+                for section in sections::Section::ALL {
+                    ui.selectable_value(&mut self.section, section, section.label());
                 }
             });
-        egui::Panel::right("song_list")
-            .default_size(self.theme.shape.list_width)
-            .show(ui, |ui| self.list_panel(ui));
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::NONE)
-            .show(ui, |ui| {
-                self.backdrop.paint(ui, ui.max_rect(), &self.theme);
-
-                let levels = self.spectrum_levels(ctx.input(|i| i.stable_dt));
-                let spectrum_height = self.theme.spectrum.height;
-                let content_height = (ui.available_height() - spectrum_height).max(0.0);
-                egui::Frame::NONE
-                    .inner_margin(self.theme.shape.padding)
-                    .show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            for section in sections::Section::ALL {
-                                ui.selectable_value(&mut self.section, section, section.label());
-                            }
-                        });
-                        let size = egui::vec2(ui.available_width(), content_height - 40.0);
-                        ui.allocate_ui(size, |ui| match self.section {
-                            sections::Section::Components => {
-                                egui::ScrollArea::vertical()
-                                    .auto_shrink(false)
-                                    .show(ui, |ui| self.preview(ui));
-                            }
-                            sections::Section::Queue => self.extras.queue(ui, &self.theme),
-                            sections::Section::Playlists => self.extras.playlists(ui, &self.theme),
-                            sections::Section::Notices => self.extras.notices(ui, &self.theme),
-                        });
-                    });
-                spectrum(ui, &self.theme, &levels, spectrum_height);
+            let size = egui::vec2(
+                ui.available_width(),
+                ui.available_height() - theme.spectrum.height,
+            );
+            ui.allocate_ui(size, |ui| match self.section {
+                sections::Section::Components => {
+                    egui::ScrollArea::vertical()
+                        .auto_shrink(false)
+                        .show(ui, |ui| self.preview(ui));
+                }
+                sections::Section::Queue => self.extras.queue(ui, &theme),
+                sections::Section::Playlists => self.extras.playlists(ui, &theme),
+                sections::Section::Notices => self.extras.notices(ui, &theme),
             });
+        });
+        self.backdrop = backdrop;
+        self.visible = visible;
+        self.main = state;
+        self.apply_events(&ctx, event);
         self.extras.toasts.show(&ctx, &self.theme);
     }
 }
