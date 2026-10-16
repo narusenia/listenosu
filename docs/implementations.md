@@ -18,7 +18,7 @@
 
 | Phase | 内容 | 状態 | 完了日 |
 | --- | --- | --- | --- |
-| 0 | プロジェクト基盤 | 進行中（ビルド確認待ち） | |
+| 0 | プロジェクト基盤 | ほぼ完了（3 OS の CI は push 後に確認） | |
 | 1 | UI ギャラリー（UI 設計） | 未着手 | |
 | 2 | 技術検証（試作） | 未着手 | |
 | 3 | ライブラリ読み取り（C# ヘルパー） | 未着手 | |
@@ -54,7 +54,8 @@ listenosu/
 - [x] git を初期化し、.gitignore と LICENSE（MIT）を置く
 - [ ] フォントを選んで同梱する → Phase 1 の冒頭に移した（ライセンスを確認してから選ぶため）
 - [x] CI（GitHub Actions）で Windows / macOS / Linux のビルドと clippy を回す定義を書く（mise で版をそろえる。実際に回すのは GitHub に push してから）
-- [ ] ローカルで空の eframe ウィンドウをビルド・起動して確認する（MSVC Build Tools の導入待ち）
+- [x] ローカルで空の eframe ウィンドウをビルド・起動して確認する（gallery と listenosu の両方。fmt と clippy も通った）
+- [ ] GitHub に push して、3 OS の CI が通ることを確認する
 
 **完了条件**: ローカルと 3 OS の CI で、空の eframe ウィンドウがビルドできる
 
@@ -178,4 +179,5 @@ listenosu/
 
 - 2026-10-17: 要件定義を確定した。realm_db_reader は lazer の client.realm（フォーマット 24）を読めないため、C# ヘルパー（Realm .NET）に変更した
 - 2026-10-17: Phase 0 を開始した。workspace は edition 2024、eframe / egui 0.37 で作った。この PC には C のリンカー（MSVC Build Tools）が無く、ビルドできなかったため、ユーザーが導入する。フォントの同梱は Phase 1 に移した
+- 2026-10-17: MSVC Build Tools を導入し、ローカルでビルドと起動を確認した。eframe 0.37 では `App` のメソッドが `update` ではなく `ui` で、egui は `eframe::egui` から使う
 - 2026-10-17: オーディオスペクトラムを追加した（メイン画面とミニプレイヤーにバー型で表示、既定は ON、見た目はテーマ定義に入れる）
