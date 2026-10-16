@@ -4,7 +4,6 @@ use ui::components::notice::{NoticeKind, Toasts, banner};
 use ui::components::playlist_editor::{PlaylistEditor, PlaylistView};
 use ui::components::settings::{KeyBindChange, keybind, setting_row, toggle};
 use ui::components::song_rows::{RowEvent, song_rows};
-use ui::fonts;
 use ui::model::SongView;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -23,6 +22,17 @@ impl Section {
         Self::Playlists,
         Self::Notices,
     ];
+
+    /// Section named on the command line, e.g. `cargo run -p gallery -- notices`.
+    pub fn from_arg(arg: &str) -> Option<Self> {
+        match arg {
+            "components" => Some(Self::Components),
+            "queue" => Some(Self::Queue),
+            "playlists" => Some(Self::Playlists),
+            "notices" => Some(Self::Notices),
+            _ => None,
+        }
+    }
 
     pub fn label(self) -> &'static str {
         match self {
@@ -89,10 +99,7 @@ impl Extras {
 
     pub fn queue(&mut self, ui: &mut egui::Ui, theme: &Theme) {
         ui.horizontal(|ui| {
-            ui.label(
-                egui::RichText::new(format!("Up next ({})", self.queue.len()))
-                    .font(fonts::bold(theme.text.heading)),
-            );
+            ui.label(theme.heading(format!("Up next ({})", self.queue.len())));
             if ui.button("Clear").clicked() {
                 self.queue.clear();
                 self.queue_current = None;
@@ -138,7 +145,7 @@ impl Extras {
 
     pub fn notices(&mut self, ui: &mut egui::Ui, theme: &Theme) {
         egui::ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-            ui.label(egui::RichText::new("Banners").font(fonts::bold(theme.text.heading)));
+            ui.label(theme.heading("Banners"));
             if self.db_banner {
                 let event = banner(
                     ui,
@@ -165,7 +172,7 @@ impl Extras {
             }
 
             ui.add_space(theme.shape.padding);
-            ui.label(egui::RichText::new("Toasts").font(fonts::bold(theme.text.heading)));
+            ui.label(theme.heading("Toasts"));
             ui.horizontal(|ui| {
                 for (label, kind) in [
                     ("Info", NoticeKind::Info),
@@ -179,7 +186,7 @@ impl Extras {
             });
 
             ui.add_space(theme.shape.padding);
-            ui.label(egui::RichText::new("Settings controls").font(fonts::bold(theme.text.heading)));
+            ui.label(theme.heading("Settings controls"));
             let s = &mut self.settings;
             setting_row(ui, theme, "Hide to the tray when the window is closed", |ui| {
                 toggle(ui, theme, &mut s.tray_on_close);

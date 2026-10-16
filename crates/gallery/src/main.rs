@@ -61,7 +61,10 @@ impl Gallery {
         ui::fonts::install(&cc.egui_ctx);
         let songs = mock::songs(5000);
         Self {
-            section: sections::Section::default(),
+            section: std::env::args()
+                .nth(1)
+                .and_then(|arg| sections::Section::from_arg(&arg))
+                .unwrap_or_default(),
             extras: sections::Extras::new(&songs),
             theme: Theme::lazer(),
             applied: None,
@@ -208,12 +211,12 @@ impl Gallery {
     }
 
     fn preview(&self, ui: &mut egui::Ui) {
-        ui.heading("listenosu gallery");
+        ui.label(self.theme.heading("listenosu gallery"));
         ui.label("Regular: The quick brown fox jumps over the lazy dog. 0123456789");
         ui.label("日本語の表示確認：作業用BGMを流し聴きする。ひらがな・カタカナ・漢字。");
 
         ui.add_space(self.theme.shape.padding);
-        ui.heading("Info panel");
+        ui.label(self.theme.heading("Info panel"));
         if let Some(song) = self.playing.and_then(|i| self.visible.get(i)) {
             info_panel(ui, &self.theme, song);
         } else {
@@ -221,7 +224,7 @@ impl Gallery {
         }
 
         ui.add_space(self.theme.shape.padding);
-        ui.heading("Song card");
+        ui.label(self.theme.heading("Song card"));
         let state = |selected, playing| CardState { selected, playing };
         let samples = [
             ("normal", state(false, false), false),
