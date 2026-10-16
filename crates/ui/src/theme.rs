@@ -184,7 +184,8 @@ impl Theme {
         visuals.warn_fg_color = c.warning;
         visuals.error_fg_color = c.error;
         visuals.selection.bg_fill = c.primary;
-        visuals.selection.stroke = Stroke::new(1.0, c.primary_light);
+        // egui also uses this stroke color for the text of selected items.
+        visuals.selection.stroke = Stroke::new(1.0, c.text);
 
         let radius = CornerRadius::same(s.radius_button);
         let widgets = &mut visuals.widgets;
