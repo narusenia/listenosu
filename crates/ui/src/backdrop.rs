@@ -1,9 +1,10 @@
-use egui::{Color32, ColorImage, Rect, TextureHandle, TextureOptions, pos2};
+use egui::{Color32, ColorImage, Mesh, Rect, TextureHandle, TextureOptions, pos2};
 
 use crate::theme::Theme;
 
 /// Blurred, dimmed full-window background taken from the playing song's image.
-/// The blur is a box downscale; the GPU's linear filtering smooths it when drawn large.
+/// The blur is a downscale followed by three box-blur passes (close to a Gaussian); the GPU's
+/// linear filtering smooths the small result when it is drawn large.
 #[derive(Default)]
 pub struct Backdrop {
     current: Option<TextureHandle>,
@@ -22,7 +23,9 @@ impl Backdrop {
         height: usize,
         blur: f32,
     ) {
-        let (pixels, w, h) = downscale(rgba, width, height, blur.max(1.0) as usize);
+        let factor = (blur / BLUR_RADIUS as f32).max(1.0) as usize;
+        let (mut pixels, w, h) = downscale(rgba, width, height, factor);
+        blur_rgba(&mut pixels, w, h);
         let image = ColorImage::from_rgba_unmultiplied([w, h], &pixels);
         self.previous = self.current.take();
         self.current = Some(ctx.load_texture("backdrop", image, TextureOptions::LINEAR));
@@ -65,6 +68,65 @@ impl Backdrop {
                 0.0,
                 Color32::from_black_alpha((theme.backdrop.dim * 255.0) as u8),
             );
+            let edge = Color32::from_black_alpha((theme.backdrop.scrim * 255.0) as u8);
+            let reach = rect.height() * SCRIM_REACH;
+            let (top, bottom) = (
+                rect.with_max_y(rect.top() + reach),
+                rect.with_min_y(rect.bottom() - reach),
+            );
+            painter.add(vertical_gradient(top, edge, Color32::TRANSPARENT));
+            painter.add(vertical_gradient(bottom, Color32::TRANSPARENT, edge));
+        }
+    }
+}
+
+/// Box-blur radius in downscaled pixels; the downscale factor follows from the theme's blur.
+const BLUR_RADIUS: usize = 4;
+/// Share of the window height the top and bottom scrims fade over.
+const SCRIM_REACH: f32 = 0.4;
+
+fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Mesh {
+    let mut mesh = Mesh::default();
+    mesh.colored_vertex(rect.left_top(), top);
+    mesh.colored_vertex(rect.right_top(), top);
+    mesh.colored_vertex(rect.right_bottom(), bottom);
+    mesh.colored_vertex(rect.left_bottom(), bottom);
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+    mesh
+}
+
+/// Three box-blur passes in each direction; edges repeat the border pixels.
+fn blur_rgba(pixels: &mut [u8], width: usize, height: usize) {
+    for _ in 0..3 {
+        blur_pass(pixels, width, height, true);
+        blur_pass(pixels, width, height, false);
+    }
+}
+
+fn blur_pass(pixels: &mut [u8], width: usize, height: usize, horizontal: bool) {
+    let (len, lines, line_stride, step) = if horizontal {
+        (width, height, width * 4, 4)
+    } else {
+        (height, width, 4, width * 4)
+    };
+    let mut out = vec![0u8; len * 4];
+    for line in 0..lines {
+        let base = line * line_stride;
+        for i in 0..len {
+            let (lo, hi) = (
+                i.saturating_sub(BLUR_RADIUS),
+                (i + BLUR_RADIUS).min(len - 1),
+            );
+            for channel in 0..4 {
+                let sum: usize = (lo..=hi)
+                    .map(|j| pixels[base + j * step + channel] as usize)
+                    .sum();
+                out[i * 4 + channel] = (sum / (hi - lo + 1)) as u8;
+            }
+        }
+        for (i, px) in out.chunks(4).enumerate() {
+            pixels[base + i * step..base + i * step + 4].copy_from_slice(px);
         }
     }
 }
@@ -128,6 +190,19 @@ mod tests {
         let (out, w, h) = downscale(&rgba, 2, 1, 2);
         assert_eq!((w, h), (1, 1));
         assert_eq!(out, [50, 50, 50, 255]);
+    }
+
+    #[test]
+    fn blur_keeps_flat_color_and_spreads_a_bright_pixel() {
+        let mut flat = [10u8, 20, 30, 255].repeat(9 * 9);
+        blur_rgba(&mut flat, 9, 9);
+        assert!(flat.chunks(4).all(|px| px == [10, 20, 30, 255]));
+
+        let mut dot = [0u8, 0, 0, 255].repeat(9 * 9);
+        dot[(4 * 9 + 4) * 4] = 255;
+        blur_rgba(&mut dot, 9, 9);
+        assert!(dot[(4 * 9 + 1) * 4] > 0, "neighbours pick up some light");
+        assert!(dot[(4 * 9 + 4) * 4] < 255);
     }
 
     #[test]

@@ -66,6 +66,8 @@ pub struct Backdrop {
     pub blur: f32,
     /// How much the backdrop image is darkened (0.0 to 1.0).
     pub dim: f32,
+    /// Extra darkening at the top and bottom edges (0.0 to 1.0), so light images keep text readable.
+    pub scrim: f32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -137,6 +139,7 @@ impl Theme {
             backdrop: Backdrop {
                 blur: 24.0,
                 dim: 0.65,
+                scrim: 0.5,
             },
             motion: Motion {
                 hover_seconds: 0.12,
@@ -193,6 +196,8 @@ impl Theme {
         visuals.warn_fg_color = c.warning;
         visuals.error_fg_color = c.error;
         visuals.slider_trailing_fill = true;
+        // The fill overhangs the handle by the corner radius; a narrow rect handle would not cover it.
+        visuals.handle_shape = egui::style::HandleShape::Circle;
         visuals.selection.bg_fill = c.primary;
         // egui also uses this stroke color for the text of selected items.
         visuals.selection.stroke = Stroke::new(1.0, c.text);

@@ -74,6 +74,7 @@ pub fn show(ui: &mut egui::Ui, theme: &mut Theme, status: &mut String) {
         let backdrop = &mut theme.backdrop;
         ui.add(egui::Slider::new(&mut backdrop.blur, 1.0..=64.0).text("blur"));
         ui.add(egui::Slider::new(&mut backdrop.dim, 0.0..=1.0).text("dim"));
+        ui.add(egui::Slider::new(&mut backdrop.scrim, 0.0..=1.0).text("scrim"));
 
         ui.separator();
         ui.strong("Motion");
