@@ -20,8 +20,8 @@ pub fn bold(size: f32) -> FontId {
     FontId::new(size, bold_family())
 }
 
-/// 同梱フォントを登録する。どちらも可変フォントで、既定のウェイトが最も細い値なので、
-/// 標準と太字のウェイトを明示して別のフォントとして登録する。
+/// Registers the bundled fonts. Both are variable fonts whose default weight is the
+/// thinnest one, so each weight is registered explicitly as a separate font.
 pub fn install(ctx: &egui::Context) {
     let faces = [
         ("nunito-regular", NUNITO, REGULAR_WEIGHT),

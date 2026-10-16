@@ -1,7 +1,8 @@
 use egui::{Color32, CornerRadius, FontFamily, FontId, Stroke, TextStyle, vec2};
 use serde::{Deserialize, Serialize};
 
-/// UI の見た目に関わる値をすべてここに集める。UI のコードに色や寸法を直接書かない。
+/// Every value that affects the look of the UI lives here.
+/// UI code must not hardcode colors or sizes.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Theme {
@@ -53,9 +54,9 @@ pub struct TextSizes {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Backdrop {
-    /// 背景画像のぼかしの強さ（縮小率の逆数。大きいほど強くぼける）
+    /// Blur strength of the backdrop image (the inverse of the downscale factor; larger is blurrier).
     pub blur: f32,
-    /// 背景画像を暗くする量（0.0〜1.0）
+    /// How much the backdrop image is darkened (0.0 to 1.0).
     pub dim: f32,
 }
 
@@ -72,7 +73,7 @@ pub struct Spectrum {
     pub height: f32,
     pub mini_height: f32,
     pub radius: u8,
-    /// 1 秒あたりに下がる量（0.0〜1.0 の振幅に対する割合）
+    /// How far the bars fall per second, as a fraction of the 0.0 to 1.0 amplitude range.
     pub decay_per_second: f32,
     pub color_low: Color32,
     pub color_high: Color32,
@@ -85,7 +86,7 @@ impl Default for Theme {
 }
 
 impl Theme {
-    /// osu!lazer の雰囲気に寄せた内蔵テーマ（濃い紫紺の背景とピンクのアクセント）
+    /// Built-in theme styled after osu!lazer (deep indigo background with a pink accent).
     pub fn lazer() -> Self {
         Self {
             name: "lazer".to_owned(),
