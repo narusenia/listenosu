@@ -52,10 +52,14 @@ pub fn visible(
     view: usize,
     sort: usize,
     romanized: bool,
+    group_same: bool,
 ) -> Vec<usize> {
     let (key, descending) = SORTS[sort.min(SORTS.len() - 1)];
     let mut rows = search(&catalog.songs, query, key, descending, romanized);
     if view == 0 {
+        if group_same {
+            group_same_songs(catalog, &mut rows);
+        }
         return rows;
     }
     let members: HashSet<usize> = if view <= catalog.collections.len() {
@@ -74,7 +78,24 @@ pub fn visible(
         }
     };
     rows.retain(|i| members.contains(i));
+    // A playlist is the user's own list, so only collections are grouped.
+    if group_same && view <= catalog.collections.len() {
+        group_same_songs(catalog, &mut rows);
+    }
     rows
+}
+
+/// Keeps the first row of each title and artist, so the best-sorted variant stands for the group.
+/// The original-language spelling is the key either way, so the romanized toggle does not regroup.
+fn group_same_songs(catalog: &Catalog, rows: &mut Vec<usize>) {
+    let mut seen = HashSet::new();
+    rows.retain(|&i| {
+        let song = &catalog.songs[i];
+        seen.insert((
+            song.title(false).trim().to_lowercase(),
+            song.artist(false).trim().to_lowercase(),
+        ))
+    });
 }
 
 pub fn song_view(song: &Song, missing: bool, romanized: bool) -> SongView {
@@ -129,7 +150,7 @@ mod tests {
         );
 
         let titles = |view, query| -> Vec<String> {
-            visible(&catalog, &playlists, query, view, 0, false)
+            visible(&catalog, &playlists, query, view, 0, false, true)
                 .into_iter()
                 .map(|i| catalog.songs[i].title.clone())
                 .collect()
@@ -140,5 +161,32 @@ mod tests {
         assert_eq!(titles(0, "ta"), ["Beta"]);
         assert!(titles(1, "alpha").is_empty());
         assert!(titles(9, "").is_empty(), "a stale view index shows nothing");
+    }
+
+    #[test]
+    fn songs_with_the_same_title_and_artist_group_into_the_first_sorted_one_unless_opted_out() {
+        let mut catalog = catalog();
+        catalog.songs = vec![
+            Song {
+                bpm: 150.0,
+                ..song("aa", "Same", "m1")
+            },
+            Song {
+                bpm: 120.0,
+                ..song("bb", "Same ", "m2")
+            },
+            song("cc", "Other", "m3"),
+        ];
+        catalog.collections.clear();
+        let mut playlists = Playlists::default();
+        let list = playlists.create("All");
+        for s in catalog.songs.clone() {
+            playlists.playlists[list].add(&s);
+        }
+        // Sorted by BPM (key 4), the slower variant comes first and stands for the group.
+        let rows = |view, group| visible(&catalog, &playlists, "", view, 4, false, group);
+        assert_eq!(rows(0, true), [2, 1]);
+        assert_eq!(rows(0, false), [2, 1, 0]);
+        assert_eq!(rows(1, true).len(), 3, "playlists are not grouped");
     }
 }

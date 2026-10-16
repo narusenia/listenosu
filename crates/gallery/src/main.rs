@@ -81,6 +81,7 @@ impl Gallery {
                 data_folder: SAMPLE_FOLDER.to_owned(),
                 language: 0,
                 romanized: false,
+                group_same: true,
                 crossfade_secs: 0.0,
                 tray_on_close: true,
                 mini_on_top: false,

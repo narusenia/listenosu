@@ -14,6 +14,8 @@ pub struct SettingsState {
     pub language: usize,
     /// Show romanized title and artist instead of the original language.
     pub romanized: bool,
+    /// Show songs with the same title and artist (speed variants, re-imports) as one row.
+    pub group_same: bool,
     pub crossfade_secs: f32,
     pub tray_on_close: bool,
     pub mini_on_top: bool,
@@ -58,6 +60,14 @@ pub fn settings_screen(
                 setting_row(ui, theme, "Show romanized titles and artists", |ui| {
                     toggle(ui, theme, &mut state.romanized);
                 });
+                setting_row(
+                    ui,
+                    theme,
+                    "Group songs with the same title and artist",
+                    |ui| {
+                        toggle(ui, theme, &mut state.group_same);
+                    },
+                );
                 setting_row(ui, theme, "Audio spectrum", |ui| {
                     toggle(ui, theme, &mut state.spectrum);
                 });

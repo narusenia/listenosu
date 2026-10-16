@@ -28,6 +28,7 @@ pub struct Config {
     pub data_folder: String,
     pub language: usize,
     pub romanized: bool,
+    pub group_same: bool,
     pub crossfade_secs: f32,
     pub tray_on_close: bool,
     pub mini_on_top: bool,
@@ -54,6 +55,7 @@ impl Default for Config {
             data_folder: String::new(),
             language: 0,
             romanized: false,
+            group_same: true,
             crossfade_secs: 0.0,
             tray_on_close: true,
             mini_on_top: false,
@@ -110,6 +112,7 @@ impl Config {
             data_folder: self.data_folder.clone(),
             language: self.language,
             romanized: self.romanized,
+            group_same: self.group_same,
             crossfade_secs: self.crossfade_secs,
             tray_on_close: self.tray_on_close,
             mini_on_top: self.mini_on_top,
@@ -126,6 +129,7 @@ impl Config {
         self.data_folder = s.data_folder.clone();
         self.language = s.language;
         self.romanized = s.romanized;
+        self.group_same = s.group_same;
         self.crossfade_secs = s.crossfade_secs;
         self.tray_on_close = s.tray_on_close;
         self.mini_on_top = s.mini_on_top;

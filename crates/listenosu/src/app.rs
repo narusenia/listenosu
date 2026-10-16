@@ -206,6 +206,7 @@ impl App {
             self.main.view,
             self.main.sort,
             self.romanized(),
+            self.config.group_same,
         );
         self.views = self
             .visible
@@ -641,10 +642,13 @@ impl App {
     }
 
     fn apply_settings(&mut self, ctx: &egui::Context) {
-        let romanized_before = self.config.romanized;
+        let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
         self.config.apply_settings(&self.settings);
         if let Some(player) = &mut self.player {
             player.set_crossfade(Duration::from_secs_f32(self.config.crossfade_secs));
+        }
+        if group_before != self.config.group_same {
+            self.rebuild_list();
         }
         if romanized_before != self.config.romanized {
             self.rebuild_list();
