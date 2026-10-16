@@ -52,7 +52,7 @@ listenosu/
 - [x] Cargo workspace と上記の crate 雛形を作る
 - [x] mise.toml でツールのバージョンを固定する（Rust 1.95.0。dotnet は Phase 2 で追加）
 - [x] git を初期化し、.gitignore と LICENSE（MIT）を置く
-- [ ] フォントを選んで同梱する → Phase 1 の冒頭に移した（ライセンスを確認してから選ぶため）
+- [x] フォントの同梱 → Phase 1.0 に移した
 - [x] CI（GitHub Actions）で Windows / macOS / Linux のビルドと clippy を回す定義を書く（mise で版をそろえる。実際に回すのは GitHub に push してから）
 - [x] ローカルで空の eframe ウィンドウをビルド・起動して確認する（gallery と listenosu の両方。fmt と clippy も通った）
 - [ ] GitHub に push して、3 OS の CI が通ることを確認する
@@ -64,7 +64,7 @@ listenosu/
 `crates/ui` に部品と画面を作り、`crates/gallery` で一覧表示する。DB と音声には依存しない。
 
 ### 1.0 フォント
-- [ ] ラテン文字用と日本語用のフォントを選び、ライセンス（再配布の可否）を確認して `assets/` に同梱する
+- [x] ラテン文字用に Nunito、日本語用に Noto Sans JP を選び、`assets/fonts/` に同梱した（どちらも SIL OFL 1.1。ライセンス原文を添付。Noto Sans JP は可変フォントで約 9.6 MB。必要になれば部分集合に絞る）
 
 ### 1.1 テーマ定義
 - [ ] `Theme` 構造体を作る（色パレット、角丸、余白、フォントサイズ、背景のぼかしと暗さ、アニメーション時間、スペクトラムの色・本数・減衰の速さ・高さ）。serde でシリアライズできるようにする
