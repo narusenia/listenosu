@@ -29,7 +29,7 @@ pub fn first_run_screen(ui: &mut egui::Ui, theme: &Theme, searched: &[String]) -
                     ui.label(theme.heading("osu!lazer was not found"));
                     ui.label(
                         RichText::new(
-                            "listenosu plays the songs in your osu!lazer library. \
+                            "listenosu! plays the songs in your osu!lazer library. \
                              Choose the folder that contains client.realm and the files folder.",
                         )
                         .color(theme.colors.text_dim),

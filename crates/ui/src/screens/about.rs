@@ -12,7 +12,7 @@ pub fn about_screen(ui: &mut egui::Ui, theme: &Theme, version: &str) -> bool {
         .show(ui, |ui| {
             back = header(ui, theme, "About");
             ui.label(
-                RichText::new("listenosu")
+                RichText::new("listenosu!")
                     .font(fonts::bold(theme.text.title))
                     .color(theme.colors.text),
             );
@@ -32,7 +32,7 @@ pub fn about_screen(ui: &mut egui::Ui, theme: &Theme, version: &str) -> bool {
 
             ui.add_space(theme.shape.padding);
             ui.label(theme.heading("Licenses"));
-            ui.label("listenosu: MIT License");
+            ui.label("listenosu!: MIT License");
             ui.label("Nunito: SIL Open Font License 1.1");
             ui.label("Noto Sans JP: SIL Open Font License 1.1");
         });

@@ -17,6 +17,8 @@ enum Tab {
 /// What the user asked for; the app applies it.
 pub enum Action {
     DismissBanner,
+    /// The panel was opened or collapsed.
+    SideOpen(bool),
     ClearQueue,
     AddToQueue,
     QueueRows(RowEvent),
@@ -34,6 +36,8 @@ pub struct SideInput<'a> {
 #[derive(Default)]
 pub struct Side {
     tab: Tab,
+    /// Queue and playlists are hidden until a tab is clicked.
+    pub open: bool,
     editor: PlaylistEditor,
     pub selected_playlist: Option<usize>,
     pub queue_views: Vec<SongView>,
@@ -48,10 +52,23 @@ impl Side {
         {
             actions.push(Action::DismissBanner);
         }
+        let was_open = self.open;
         ui.horizontal(|ui| {
-            ui.selectable_value(&mut self.tab, Tab::Queue, "Queue");
-            ui.selectable_value(&mut self.tab, Tab::Playlists, "Playlists");
+            for (tab, label) in [(Tab::Queue, "Queue"), (Tab::Playlists, "Playlists")] {
+                let shown = self.open && self.tab == tab;
+                // Clicking the tab that is showing collapses the panel.
+                if ui.selectable_label(shown, label).clicked() {
+                    self.open = !shown;
+                    self.tab = tab;
+                }
+            }
         });
+        if self.open != was_open {
+            actions.push(Action::SideOpen(self.open));
+        }
+        if !self.open {
+            return actions;
+        }
         // Leave the bottom to the spectrum, which the main screen pins there.
         let size = egui::vec2(
             ui.available_width(),

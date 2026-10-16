@@ -1,4 +1,4 @@
-# listenosu
+# listenosu!
 
 [English](README.md) | 日本語
 

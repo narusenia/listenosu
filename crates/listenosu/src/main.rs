@@ -16,7 +16,7 @@ fn main() -> eframe::Result {
     let dirs = AppDirs::from_env();
     let config = dirs.as_ref().map(Config::load).unwrap_or_default();
     eframe::run_native(
-        "listenosu",
+        "listenosu!",
         eframe::NativeOptions {
             viewport: viewport(&config),
             ..Default::default()

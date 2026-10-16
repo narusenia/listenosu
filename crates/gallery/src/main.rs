@@ -325,7 +325,7 @@ impl Gallery {
     }
 
     fn preview(&self, ui: &mut egui::Ui) {
-        ui.label(self.theme.heading("listenosu gallery"));
+        ui.label(self.theme.heading("listenosu! gallery"));
         ui.label("Regular: The quick brown fox jumps over the lazy dog. 0123456789");
         ui.label("日本語の表示確認：作業用BGMを流し聴きする。ひらがな・カタカナ・漢字。");
 
@@ -475,7 +475,7 @@ fn starts_mini() -> bool {
 
 fn main() -> eframe::Result {
     eframe::run_native(
-        "listenosu gallery",
+        "listenosu! gallery",
         eframe::NativeOptions {
             viewport: {
                 let shape = Theme::lazer().shape;

@@ -140,3 +140,36 @@ fn glyph_button(
     }
     response.clicked()
 }
+
+/// Resize zones along the window edges, which a window without system decorations lacks.
+/// Pressing in a zone hands the drag to the OS. Call once per frame, not for fixed-size windows.
+pub fn resize_handles(ctx: &egui::Context, theme: &Theme) {
+    use egui::{CursorIcon, ResizeDirection as Dir, ViewportCommand};
+
+    let maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
+    let Some(pos) = ctx.pointer_latest_pos() else {
+        return;
+    };
+    if maximized {
+        return;
+    }
+    let edge = theme.shape.spacing;
+    let screen = ctx.content_rect();
+    let (left, right) = (pos.x - screen.left() < edge, screen.right() - pos.x < edge);
+    let (top, bottom) = (pos.y - screen.top() < edge, screen.bottom() - pos.y < edge);
+    let (dir, cursor) = match (left, right, top, bottom) {
+        (true, _, true, _) => (Dir::NorthWest, CursorIcon::ResizeNorthWest),
+        (_, true, true, _) => (Dir::NorthEast, CursorIcon::ResizeNorthEast),
+        (true, _, _, true) => (Dir::SouthWest, CursorIcon::ResizeSouthWest),
+        (_, true, _, true) => (Dir::SouthEast, CursorIcon::ResizeSouthEast),
+        (true, ..) => (Dir::West, CursorIcon::ResizeWest),
+        (_, true, ..) => (Dir::East, CursorIcon::ResizeEast),
+        (_, _, true, _) => (Dir::North, CursorIcon::ResizeNorth),
+        (_, _, _, true) => (Dir::South, CursorIcon::ResizeSouth),
+        _ => return,
+    };
+    ctx.set_cursor_icon(cursor);
+    if ctx.input(|i| i.pointer.primary_pressed()) {
+        ctx.send_viewport_cmd(ViewportCommand::BeginResize(dir));
+    }
+}

@@ -13,7 +13,7 @@ use ui::components::playbar::PlaybarEvent;
 use ui::components::playlist_editor::PlaylistView;
 use ui::components::song_rows::RowEvent;
 use ui::components::spectrum::SpectrumSmoother;
-use ui::components::titlebar::{TitlebarEvent, titlebar};
+use ui::components::titlebar::{TitlebarEvent, resize_handles, titlebar};
 use ui::model::{PlayerView, Repeat as UiRepeat, SongView};
 use ui::screens::about::about_screen;
 use ui::screens::first_run::first_run_screen;
@@ -94,6 +94,7 @@ impl App {
             .as_ref()
             .map(|d| Playlists::load(&d.playlists_file()))
             .unwrap_or_default();
+        let side_open = config.side_open;
         let mut app = Self {
             theme: Theme::lazer(),
             theme_applied: false,
@@ -130,6 +131,7 @@ impl App {
             seek_hold: None,
             settle: SETTLE_FRAMES,
         };
+        app.side.open = side_open;
         app.open_catalog();
         app
     }
@@ -449,6 +451,10 @@ impl App {
             match action {
                 Action::DismissBanner => {
                     self.dismissed_problem = self.catalog.as_ref().and_then(|c| c.problem.clone());
+                }
+                Action::SideOpen(open) => {
+                    self.config.side_open = open;
+                    self.touch_config();
                 }
                 Action::ClearQueue => {
                     if let Some(player) = &mut self.player {
@@ -916,11 +922,14 @@ impl eframe::App for App {
         let bar = titlebar(
             ui,
             &self.theme,
-            "listenosu",
+            "listenosu!",
             !self.mini,
             self.catalog.is_some() && !self.mini,
         );
         self.apply_titlebar(&ctx, bar);
+        if !self.mini {
+            resize_handles(&ctx, &self.theme);
+        }
 
         if self.catalog.is_none() {
             self.show_first_run(ui);

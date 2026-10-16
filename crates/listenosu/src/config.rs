@@ -38,6 +38,8 @@ pub struct Config {
     pub discord: bool,
     pub check_updates: bool,
 
+    /// Whether the queue / playlists panel is expanded.
+    pub side_open: bool,
     pub volume: f32,
     pub shuffle: bool,
     /// 0 off, 1 all, 2 one.
@@ -56,6 +58,7 @@ impl Default for Config {
             language: 0,
             romanized: false,
             group_same: true,
+            side_open: false,
             crossfade_secs: 0.0,
             tray_on_close: true,
             mini_on_top: false,
