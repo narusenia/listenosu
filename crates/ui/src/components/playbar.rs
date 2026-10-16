@@ -29,6 +29,8 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
         .fill(c.chrome)
         .inner_margin(Margin::symmetric(theme.shape.padding as i8, 0))
         .show(ui, |ui| {
+            // A Frame only fills the width its contents used, so claim the whole row.
+            ui.set_width(ui.available_width());
             ui.set_height(theme.shape.playbar_height);
             ui.horizontal_centered(|ui| {
                 event.prev = icon_button(ui, theme, Icon::Prev, button_size).clicked();
@@ -52,7 +54,11 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
 
                 let time =
                     |text: String| RichText::new(text).size(theme.text.small).color(c.text_dim);
-                ui.label(time(mmss(player.position_secs)));
+                // Fixed width, so the seek bar width below adds up exactly.
+                let fixed = |ui: &mut egui::Ui, text: String| {
+                    ui.add_sized([TIME_WIDTH, theme.text.body], egui::Label::new(time(text)))
+                };
+                fixed(ui, mmss(player.position_secs));
                 let seek_width =
                     ui.available_width() - VOLUME_WIDTH - TIME_WIDTH - theme.shape.spacing * 3.0;
                 let progress = if player.length_secs > 0.0 {
@@ -62,7 +68,7 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 };
                 let (_, seek) = slider_bar(ui, theme, seek_width.max(0.0), progress);
                 event.seek_secs = seek.map(|fraction| fraction * player.length_secs);
-                ui.label(time(mmss(player.length_secs)));
+                fixed(ui, mmss(player.length_secs));
 
                 let (_, volume) = slider_bar(ui, theme, VOLUME_WIDTH, player.volume);
                 event.volume = volume;
