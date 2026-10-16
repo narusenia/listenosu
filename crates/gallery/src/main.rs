@@ -1,30 +1,87 @@
 mod mock;
+mod theme_panel;
+
+use std::path::Path;
 
 use eframe::egui;
 use ui::Theme;
+use ui::backdrop::Backdrop;
+use ui::components::controls::{dropdown, search_bar};
+use ui::components::info_panel::info_panel;
+use ui::components::playbar::playbar;
 use ui::components::song_card::{CardState, song_card};
 use ui::components::song_list::song_list;
-use ui::model::SongView;
+use ui::components::spectrum::{SpectrumSmoother, spectrum};
+use ui::model::{PlayerView, Repeat, SongView};
+
+const VIEW_OPTIONS: [&str; 3] = ["All songs", "Collection: Favorites", "Playlist: Work BGM"];
+const SORT_OPTIONS: [&str; 6] = [
+    "Title",
+    "Artist",
+    "Date added",
+    "Length",
+    "BPM",
+    "Last played",
+];
+
+struct Image {
+    rgba: Vec<u8>,
+    width: usize,
+    height: usize,
+}
 
 struct Gallery {
     theme: Theme,
     applied: Option<Theme>,
     status: String,
+
     songs: Vec<SongView>,
+    visible: Vec<SongView>,
+    query: String,
+    view: usize,
+    sort: usize,
     selected: Option<usize>,
     playing: Option<usize>,
+
+    player: PlayerView,
+    smoother: SpectrumSmoother,
+    clock: f32,
+
+    images: Vec<Image>,
+    backdrop: Backdrop,
+    backdrop_image: Option<usize>,
+    backdrop_blur: f32,
 }
 
 impl Gallery {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         ui::fonts::install(&cc.egui_ctx);
+        let songs = mock::songs(5000);
         Self {
             theme: Theme::lazer(),
             applied: None,
             status: String::new(),
-            songs: mock::songs(5000),
+            visible: songs.clone(),
+            songs,
+            query: String::new(),
+            view: 0,
+            sort: 2,
             selected: None,
             playing: None,
+            player: PlayerView {
+                playing: false,
+                position_secs: 0.0,
+                length_secs: 0.0,
+                volume: 0.7,
+                shuffle: false,
+                repeat: Repeat::Off,
+            },
+            smoother: SpectrumSmoother::default(),
+            clock: 0.0,
+            images: load_images(),
+            backdrop: Backdrop::default(),
+            backdrop_image: None,
+            backdrop_blur: 0.0,
         }
     }
 
@@ -33,169 +90,140 @@ impl Gallery {
             self.theme.apply(ctx);
             self.applied = Some(self.theme.clone());
         }
+        // The blur is baked into the texture, so a changed blur needs the image set again.
+        if self.backdrop_blur != self.theme.backdrop.blur {
+            self.backdrop_blur = self.theme.backdrop.blur;
+            if let Some(index) = self.backdrop_image {
+                self.set_backdrop(ctx, index);
+            }
+        }
     }
 
-    fn theme_panel(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Theme");
-        ui.horizontal(|ui| {
-            if ui.button("Reset").clicked() {
-                self.theme = Theme::lazer();
-            }
-            if ui.button("Copy TOML").clicked() {
-                match self.theme.to_toml() {
-                    Ok(text) => {
-                        ui.ctx().copy_text(text);
-                        self.status = "Copied theme as TOML".to_owned();
-                    }
-                    Err(err) => self.status = format!("Failed: {err}"),
-                }
-            }
-        });
-        if !self.status.is_empty() {
-            ui.label(&self.status);
+    fn set_backdrop(&mut self, ctx: &egui::Context, index: usize) {
+        if let Some(image) = self.images.get(index) {
+            self.backdrop.set_image(
+                ctx,
+                &image.rgba,
+                image.width,
+                image.height,
+                self.theme.backdrop.blur,
+            );
+            self.backdrop_image = Some(index);
         }
-        ui.separator();
+    }
 
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            let colors = &mut self.theme.colors;
-            ui.strong("Colors");
-            for (label, color) in [
-                ("base", &mut colors.base),
-                ("chrome", &mut colors.chrome),
-                ("surface", &mut colors.surface),
-                ("surface_hover", &mut colors.surface_hover),
-                ("surface_selected", &mut colors.surface_selected),
-                ("primary", &mut colors.primary),
-                ("primary_light", &mut colors.primary_light),
-                ("accent", &mut colors.accent),
-                ("text", &mut colors.text),
-                ("text_dim", &mut colors.text_dim),
-                ("text_disabled", &mut colors.text_disabled),
-                ("border", &mut colors.border),
-                ("warning", &mut colors.warning),
-                ("error", &mut colors.error),
-            ] {
-                ui.horizontal(|ui| {
-                    ui.color_edit_button_srgba(color);
-                    ui.label(label);
-                });
-            }
+    /// Re-filters and re-sorts the list; the real search lives in the library crate.
+    fn refresh_list(&mut self) {
+        let query = self.query.to_lowercase();
+        self.visible = self
+            .songs
+            .iter()
+            .filter(|s| {
+                s.title.to_lowercase().contains(&query) || s.artist.to_lowercase().contains(&query)
+            })
+            .cloned()
+            .collect();
+        match self.sort {
+            0 => self.visible.sort_by(|a, b| a.title.cmp(&b.title)),
+            1 => self.visible.sort_by(|a, b| a.artist.cmp(&b.artist)),
+            3 => self.visible.sort_by_key(|s| s.length_secs),
+            4 => self.visible.sort_by(|a, b| a.bpm.total_cmp(&b.bpm)),
+            5 => self.visible.reverse(),
+            _ => {}
+        }
+        self.selected = None;
+        self.playing = None;
+    }
 
-            ui.separator();
-            ui.strong("Shape");
-            let shape = &mut self.theme.shape;
-            ui.add(egui::Slider::new(&mut shape.radius_card, 0..=24).text("radius_card"));
-            ui.add(egui::Slider::new(&mut shape.radius_button, 0..=24).text("radius_button"));
-            ui.add(egui::Slider::new(&mut shape.radius_panel, 0..=32).text("radius_panel"));
-            ui.add(egui::Slider::new(&mut shape.spacing, 0.0..=24.0).text("spacing"));
-            ui.add(egui::Slider::new(&mut shape.padding, 0.0..=32.0).text("padding"));
-            ui.add(egui::Slider::new(&mut shape.card_height, 32.0..=96.0).text("card_height"));
-            ui.add(egui::Slider::new(&mut shape.card_gap, 0.0..=24.0).text("card_gap"));
-            ui.add(
-                egui::Slider::new(&mut shape.playbar_height, 48.0..=120.0).text("playbar_height"),
-            );
-            ui.add(egui::Slider::new(&mut shape.list_width, 280.0..=640.0).text("list_width"));
+    fn play(&mut self, ctx: &egui::Context, index: usize) {
+        let Some(song) = self.visible.get(index) else {
+            return;
+        };
+        self.player.length_secs = song.length_secs as f32;
+        self.player.position_secs = 0.0;
+        self.player.playing = true;
+        self.playing = Some(index);
+        self.selected = Some(index);
+        if !self.images.is_empty() {
+            self.set_backdrop(ctx, index % self.images.len());
+        }
+    }
 
-            ui.separator();
-            ui.strong("Text");
-            let text = &mut self.theme.text;
-            ui.add(egui::Slider::new(&mut text.title, 16.0..=48.0).text("title"));
-            ui.add(egui::Slider::new(&mut text.heading, 12.0..=36.0).text("heading"));
-            ui.add(egui::Slider::new(&mut text.body, 10.0..=24.0).text("body"));
-            ui.add(egui::Slider::new(&mut text.small, 8.0..=18.0).text("small"));
+    fn advance_clock(&mut self, ctx: &egui::Context) {
+        let dt = ctx.input(|i| i.stable_dt);
+        self.clock += dt;
+        if !self.player.playing {
+            return;
+        }
+        self.player.position_secs += dt;
+        if self.player.position_secs >= self.player.length_secs
+            && let Some(index) = self.playing
+        {
+            self.play(ctx, (index + 1) % self.visible.len());
+        }
+        ctx.request_repaint();
+    }
 
-            ui.separator();
-            ui.strong("Backdrop");
-            let backdrop = &mut self.theme.backdrop;
-            ui.add(egui::Slider::new(&mut backdrop.blur, 1.0..=64.0).text("blur"));
-            ui.add(egui::Slider::new(&mut backdrop.dim, 0.0..=1.0).text("dim"));
+    /// Fake spectrum input: slow waves that fall off toward the high end.
+    fn spectrum_levels(&mut self, dt: f32) -> Vec<f32> {
+        let bars = self.theme.spectrum.bars;
+        let input: Vec<f32> = (0..bars)
+            .map(|i| {
+                if !self.player.playing {
+                    return 0.0;
+                }
+                let x = i as f32;
+                let wave = ((self.clock * 4.0 + x * 0.35).sin() * 0.5 + 0.5)
+                    * ((self.clock * 1.3 + x * 0.11).cos() * 0.5 + 0.5);
+                wave * (1.0 - x / bars as f32 * 0.5)
+            })
+            .collect();
+        self.smoother
+            .update(&input, dt, self.theme.spectrum.decay_per_second)
+            .to_vec()
+    }
 
-            ui.separator();
-            ui.strong("Motion");
-            let motion = &mut self.theme.motion;
-            ui.add(egui::Slider::new(&mut motion.hover_seconds, 0.0..=0.6).text("hover_seconds"));
-            ui.add(
-                egui::Slider::new(&mut motion.backdrop_crossfade_seconds, 0.0..=2.0)
-                    .text("backdrop_crossfade_seconds"),
-            );
+    fn list_panel(&mut self, ui: &mut egui::Ui) {
+        let mut changed =
+            search_bar(ui, &self.theme, &mut self.query, self.visible.len()).changed();
+        let options = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<_>>();
+        changed |= dropdown(ui, "view", "View", &mut self.view, &options(&VIEW_OPTIONS));
+        changed |= dropdown(ui, "sort", "Sort", &mut self.sort, &options(&SORT_OPTIONS));
+        if changed {
+            self.refresh_list();
+        }
 
-            ui.separator();
-            ui.strong("Spectrum");
-            let spectrum = &mut self.theme.spectrum;
-            ui.add(egui::Slider::new(&mut spectrum.bars, 8..=128).text("bars"));
-            ui.add(egui::Slider::new(&mut spectrum.gap, 0.0..=8.0).text("gap"));
-            ui.add(egui::Slider::new(&mut spectrum.height, 24.0..=160.0).text("height"));
-            ui.add(egui::Slider::new(&mut spectrum.mini_height, 8.0..=48.0).text("mini_height"));
-            ui.add(egui::Slider::new(&mut spectrum.radius, 0..=8).text("radius"));
-            ui.add(
-                egui::Slider::new(&mut spectrum.decay_per_second, 0.2..=6.0)
-                    .text("decay_per_second"),
-            );
-            for (label, color) in [
-                ("color_low", &mut spectrum.color_low),
-                ("color_high", &mut spectrum.color_high),
-            ] {
-                ui.horizontal(|ui| {
-                    ui.color_edit_button_srgba(color);
-                    ui.label(label);
-                });
-            }
-        });
+        let event = song_list(ui, &self.theme, &self.visible, self.selected, self.playing);
+        if event.clicked.is_some() {
+            self.selected = event.clicked;
+        }
+        if let Some(index) = event.activated {
+            self.play(ui.ctx(), index);
+        }
     }
 
     fn preview(&self, ui: &mut egui::Ui) {
         ui.heading("listenosu gallery");
         ui.label("Regular: The quick brown fox jumps over the lazy dog. 0123456789");
         ui.label("日本語の表示確認：作業用BGMを流し聴きする。ひらがな・カタカナ・漢字。");
-        ui.label(
-            egui::RichText::new("Bold: The quick brown fox 0123456789")
-                .font(ui::fonts::bold(self.theme.text.body)),
-        );
-        ui.label(
-            egui::RichText::new("太字の表示確認：作業用BGM")
-                .font(ui::fonts::bold(self.theme.text.body)),
-        );
-        ui.label(
-            egui::RichText::new("Song Title 曲名のサンプル")
-                .font(ui::fonts::bold(self.theme.text.title))
-                .color(self.theme.colors.text),
-        );
-        ui.label(
-            egui::RichText::new("Artist アーティスト名")
-                .size(self.theme.text.heading)
-                .color(self.theme.colors.text_dim),
-        );
-        ui.small("Small: 180 BPM · 3:45");
+
+        ui.add_space(self.theme.shape.padding);
+        ui.heading("Info panel");
+        if let Some(song) = self.playing.and_then(|i| self.visible.get(i)) {
+            info_panel(ui, &self.theme, song);
+        } else {
+            ui.label("Double-click a song in the list to play it.");
+        }
 
         ui.add_space(self.theme.shape.padding);
         ui.heading("Song card");
+        let state = |selected, playing| CardState { selected, playing };
         let samples = [
-            ("normal", CardState::default(), false),
-            (
-                "selected",
-                CardState {
-                    selected: true,
-                    playing: false,
-                },
-                false,
-            ),
-            (
-                "playing",
-                CardState {
-                    selected: false,
-                    playing: true,
-                },
-                false,
-            ),
-            (
-                "selected + playing",
-                CardState {
-                    selected: true,
-                    playing: true,
-                },
-                false,
-            ),
-            ("missing file", CardState::default(), true),
+            ("normal", state(false, false), false),
+            ("selected", state(true, false), false),
+            ("playing", state(false, true), false),
+            ("selected + playing", state(true, true), false),
+            ("missing file", state(false, false), true),
         ];
         for (label, state, missing) in samples {
             ui.small(label);
@@ -210,32 +238,101 @@ impl Gallery {
 
 impl eframe::App for Gallery {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        self.sync_theme(ui.ctx());
+        let ctx = ui.ctx().clone();
+        self.sync_theme(&ctx);
+        self.advance_clock(&ctx);
 
         egui::Panel::left("theme_panel")
             .default_size(300.0)
-            .show(ui, |ui| self.theme_panel(ui));
-        egui::Panel::right("song_list")
-            .default_size(self.theme.shape.list_width)
             .show(ui, |ui| {
-                ui.label(format!("{} songs", self.songs.len()));
-                let event = song_list(ui, &self.theme, &self.songs, self.selected, self.playing);
-                if event.clicked.is_some() {
-                    self.selected = event.clicked;
+                theme_panel::show(ui, &mut self.theme, &mut self.status)
+            });
+        egui::Panel::bottom("playbar")
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| {
+                let event = playbar(ui, &self.theme, &self.player);
+                let player = &mut self.player;
+                if event.toggle_play {
+                    player.playing = !player.playing;
                 }
-                if event.activated.is_some() {
-                    self.playing = event.activated;
+                if event.toggle_shuffle {
+                    player.shuffle = !player.shuffle;
+                }
+                if event.cycle_repeat {
+                    player.repeat = player.repeat.next();
+                }
+                if let Some(secs) = event.seek_secs {
+                    player.position_secs = secs;
+                }
+                if let Some(volume) = event.volume {
+                    player.volume = volume;
+                }
+                if event.next
+                    && let Some(index) = self.playing
+                {
+                    self.play(&ctx, (index + 1) % self.visible.len());
+                }
+                if event.prev
+                    && let Some(index) = self.playing
+                {
+                    self.play(&ctx, index.saturating_sub(1));
                 }
             });
-        egui::CentralPanel::default().show(ui, |ui| self.preview(ui));
+        egui::Panel::right("song_list")
+            .default_size(self.theme.shape.list_width)
+            .show(ui, |ui| self.list_panel(ui));
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| {
+                self.backdrop.paint(ui, ui.max_rect(), &self.theme);
+
+                let levels = self.spectrum_levels(ctx.input(|i| i.stable_dt));
+                let spectrum_height = self.theme.spectrum.height;
+                let content_height = (ui.available_height() - spectrum_height).max(0.0);
+                egui::Frame::NONE
+                    .inner_margin(self.theme.shape.padding)
+                    .show(ui, |ui| {
+                        egui::ScrollArea::vertical()
+                            .max_height(content_height)
+                            .auto_shrink(false)
+                            .show(ui, |ui| self.preview(ui));
+                    });
+                spectrum(ui, &self.theme, &levels, spectrum_height);
+            });
     }
+}
+
+/// Test images for the backdrop: every PNG in `assets/gallery/`.
+fn load_images() -> Vec<Image> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/gallery");
+    let mut files: Vec<_> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "png"))
+        .collect();
+    files.sort();
+    files
+        .iter()
+        .filter_map(|path| image::open(path).ok())
+        .map(|image| {
+            let rgba = image.to_rgba8();
+            Image {
+                width: rgba.width() as usize,
+                height: rgba.height() as usize,
+                rgba: rgba.into_raw(),
+            }
+        })
+        .collect()
 }
 
 fn main() -> eframe::Result {
     eframe::run_native(
         "listenosu gallery",
         eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 800.0]),
+            viewport: egui::ViewportBuilder::default().with_inner_size([1400.0, 860.0]),
             ..Default::default()
         },
         Box::new(|cc| Ok(Box::new(Gallery::new(cc)))),
