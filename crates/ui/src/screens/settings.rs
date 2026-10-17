@@ -20,6 +20,8 @@ pub struct SettingsState {
     pub data_folder: String,
     /// Index into `languages()`.
     pub language: usize,
+    /// Name of the chosen theme; one of the names given to `settings_screen`.
+    pub theme: String,
     /// Show romanized title and artist instead of the original language.
     pub romanized: bool,
     /// Show songs with the same title and artist (speed variants, re-imports) as one row.
@@ -58,6 +60,7 @@ pub struct SettingsEvent {
 pub fn settings_screen(
     ui: &mut egui::Ui,
     theme: &Theme,
+    theme_names: &[String],
     state: &mut SettingsState,
 ) -> SettingsEvent {
     let mut event = SettingsEvent::default();
@@ -76,6 +79,16 @@ pub fn settings_screen(
                 setting_row(ui, theme, t("settings.language"), |ui| {
                     let options = languages();
                     dropdown_inline(ui, "language", "", &mut state.language, &options, None);
+                });
+                setting_row(ui, theme, t("settings.theme"), |ui| {
+                    let current = theme_names.iter().position(|n| *n == state.theme);
+                    let mut picked = current.unwrap_or(0);
+                    dropdown_inline(ui, "theme", "", &mut picked, theme_names, None);
+                    if current != Some(picked)
+                        && let Some(name) = theme_names.get(picked)
+                    {
+                        state.theme = name.clone();
+                    }
                 });
                 setting_row(ui, theme, t("settings.romanized"), |ui| {
                     toggle(ui, theme, &mut state.romanized);

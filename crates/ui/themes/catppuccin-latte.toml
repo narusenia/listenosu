@@ -1,0 +1,26 @@
+name = "Catppuccin Latte"
+dark = false
+
+[colors]
+base = [239, 241, 245, 255]
+chrome = [220, 224, 232, 255]
+surface = [230, 233, 239, 255]
+surface_hover = [204, 208, 218, 255]
+surface_selected = [188, 192, 204, 255]
+primary = [136, 57, 239, 255]
+primary_light = [114, 135, 253, 255]
+on_primary = [239, 241, 245, 255]
+accent = [234, 118, 203, 255]
+text = [76, 79, 105, 255]
+text_dim = [108, 111, 133, 255]
+text_disabled = [156, 160, 176, 255]
+border = [188, 192, 204, 255]
+warning = [223, 142, 29, 255]
+error = [210, 15, 57, 255]
+
+[backdrop]
+tint = [239, 241, 245, 255]
+
+[spectrum]
+color_low = [234, 118, 203, 144]
+color_high = [114, 135, 253, 144]

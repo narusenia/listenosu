@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Theme {
     pub name: String,
+    /// Picks egui's dark or light base visuals; the colors below override most of them.
+    pub dark: bool,
     pub colors: Colors,
     pub shape: Shape,
     pub text: TextSizes,
@@ -16,6 +18,7 @@ pub struct Theme {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Colors {
     /// Window background.
     pub base: Color32,
@@ -28,6 +31,8 @@ pub struct Colors {
     pub primary: Color32,
     /// Lighter primary for switches and selection indicators.
     pub primary_light: Color32,
+    /// Text and icons drawn on `primary`.
+    pub on_primary: Color32,
     /// Highlights such as the playing song.
     pub accent: Color32,
     pub text: Color32,
@@ -39,6 +44,7 @@ pub struct Colors {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Shape {
     pub radius_card: u8,
     pub radius_button: u8,
@@ -57,6 +63,7 @@ pub struct Shape {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TextSizes {
     pub title: f32,
     pub heading: f32,
@@ -65,16 +72,20 @@ pub struct TextSizes {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Backdrop {
     /// Blur strength of the backdrop image (the inverse of the downscale factor; larger is blurrier).
     pub blur: f32,
     /// How much the backdrop image is darkened (0.0 to 1.0).
     pub dim: f32,
+    /// What the image is darkened toward; a light theme uses a light color.
+    pub tint: Color32,
     /// Extra darkening at the top and bottom edges (0.0 to 1.0), so light images keep text readable.
     pub scrim: f32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Motion {
     pub hover_seconds: f32,
     pub backdrop_crossfade_seconds: f32,
@@ -82,6 +93,7 @@ pub struct Motion {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Spectrum {
     pub bars: usize,
     pub gap: f32,
@@ -92,6 +104,42 @@ pub struct Spectrum {
     pub decay_per_second: f32,
     pub color_low: Color32,
     pub color_high: Color32,
+}
+
+impl Default for Colors {
+    fn default() -> Self {
+        Theme::lazer().colors
+    }
+}
+
+impl Default for Shape {
+    fn default() -> Self {
+        Theme::lazer().shape
+    }
+}
+
+impl Default for TextSizes {
+    fn default() -> Self {
+        Theme::lazer().text
+    }
+}
+
+impl Default for Backdrop {
+    fn default() -> Self {
+        Theme::lazer().backdrop
+    }
+}
+
+impl Default for Motion {
+    fn default() -> Self {
+        Theme::lazer().motion
+    }
+}
+
+impl Default for Spectrum {
+    fn default() -> Self {
+        Theme::lazer().spectrum
+    }
 }
 
 impl Default for Theme {
@@ -105,6 +153,7 @@ impl Theme {
     pub fn lazer() -> Self {
         Self {
             name: "lazer".to_owned(),
+            dark: true,
             // Sampled from osu!lazer screenshots: a neutral dark with a slight purple tint.
             colors: Colors {
                 base: Color32::from_rgb(0x24, 0x22, 0x2a),
@@ -114,6 +163,7 @@ impl Theme {
                 surface_selected: Color32::from_rgb(0x45, 0x3d, 0x5c),
                 primary: Color32::from_rgb(0x59, 0x33, 0xcc),
                 primary_light: Color32::from_rgb(0x8c, 0x66, 0xff),
+                on_primary: Color32::WHITE,
                 accent: Color32::from_rgb(0xff, 0x66, 0xaa),
                 text: Color32::from_rgb(0xff, 0xff, 0xff),
                 text_dim: Color32::from_rgb(0xb5, 0xb0, 0xc0),
@@ -145,6 +195,7 @@ impl Theme {
             backdrop: Backdrop {
                 blur: 24.0,
                 dim: 0.65,
+                tint: Color32::BLACK,
                 scrim: 0.5,
             },
             motion: Motion {
@@ -200,7 +251,11 @@ impl Theme {
     }
 
     pub fn apply(&self, ctx: &egui::Context) {
-        ctx.set_theme(egui::Theme::Dark);
+        ctx.set_theme(if self.dark {
+            egui::Theme::Dark
+        } else {
+            egui::Theme::Light
+        });
         ctx.all_styles_mut(|style| self.apply_to_style(style));
     }
 
@@ -209,7 +264,11 @@ impl Theme {
         let s = &self.shape;
 
         let visuals = &mut style.visuals;
-        *visuals = egui::Visuals::dark();
+        *visuals = if self.dark {
+            egui::Visuals::dark()
+        } else {
+            egui::Visuals::light()
+        };
         visuals.panel_fill = c.base;
         visuals.window_fill = c.surface;
         visuals.extreme_bg_color = c.base;
@@ -225,7 +284,7 @@ impl Theme {
         visuals.handle_shape = egui::style::HandleShape::Circle;
         visuals.selection.bg_fill = c.primary;
         // egui also uses this stroke color for the text of selected items.
-        visuals.selection.stroke = Stroke::new(1.0, c.text);
+        visuals.selection.stroke = Stroke::new(1.0, c.on_primary);
 
         let radius = CornerRadius::same(s.radius_button);
         let widgets = &mut visuals.widgets;
@@ -245,6 +304,7 @@ impl Theme {
             state.bg_stroke = Stroke::NONE;
             state.fg_stroke = Stroke::new(1.0, c.text);
         }
+        widgets.active.fg_stroke = Stroke::new(1.0, c.on_primary);
         for state in [
             &mut widgets.noninteractive,
             &mut widgets.inactive,

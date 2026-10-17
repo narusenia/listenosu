@@ -1,0 +1,23 @@
+name = "Rosé Pine"
+dark = true
+
+[colors]
+base = [25, 23, 36, 255]
+chrome = [19, 17, 30, 255]
+surface = [31, 29, 46, 255]
+surface_hover = [38, 35, 58, 255]
+surface_selected = [64, 61, 82, 255]
+primary = [196, 167, 231, 255]
+primary_light = [235, 188, 186, 255]
+on_primary = [25, 23, 36, 255]
+accent = [235, 111, 146, 255]
+text = [224, 222, 244, 255]
+text_dim = [144, 140, 170, 255]
+text_disabled = [110, 106, 134, 255]
+border = [64, 61, 82, 255]
+warning = [246, 193, 119, 255]
+error = [235, 111, 146, 255]
+
+[spectrum]
+color_low = [235, 111, 146, 144]
+color_high = [235, 188, 186, 144]

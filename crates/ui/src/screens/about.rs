@@ -49,6 +49,7 @@ pub fn about_screen(
             ui.label(t("about.license_nunito"));
             ui.label(t("about.license_noto"));
             ui.label(t("about.license_lucide"));
+            ui.label(t("about.license_palettes"));
         });
     back
 }

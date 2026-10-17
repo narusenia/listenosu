@@ -80,6 +80,7 @@ impl Gallery {
             settings: SettingsState {
                 data_folder: SAMPLE_FOLDER.to_owned(),
                 language: 0,
+                theme: "lazer".to_owned(),
                 romanized: false,
                 group_same: true,
                 crossfade_secs: 0.0,
@@ -246,7 +247,12 @@ impl Gallery {
             .frame(egui::Frame::NONE.fill(theme.colors.base))
             .show(ui, |ui| match page {
                 Page::Settings => {
-                    let event = settings_screen(ui, &theme, &mut self.settings);
+                    let event = settings_screen(
+                        ui,
+                        &theme,
+                        std::slice::from_ref(&theme.name),
+                        &mut self.settings,
+                    );
                     if event.choose_folder {
                         self.extras.toasts.push(
                             NoticeKind::Info,

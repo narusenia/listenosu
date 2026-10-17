@@ -1,0 +1,23 @@
+name = "Dracula"
+dark = true
+
+[colors]
+base = [40, 42, 54, 255]
+chrome = [33, 34, 44, 255]
+surface = [48, 50, 65, 255]
+surface_hover = [68, 71, 90, 255]
+surface_selected = [86, 90, 118, 255]
+primary = [189, 147, 249, 255]
+primary_light = [207, 168, 252, 255]
+on_primary = [40, 42, 54, 255]
+accent = [255, 121, 198, 255]
+text = [248, 248, 242, 255]
+text_dim = [185, 187, 201, 255]
+text_disabled = [98, 114, 164, 255]
+border = [68, 71, 90, 255]
+warning = [255, 184, 108, 255]
+error = [255, 85, 85, 255]
+
+[spectrum]
+color_low = [255, 121, 198, 144]
+color_high = [207, 168, 252, 144]

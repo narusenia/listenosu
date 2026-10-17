@@ -1,0 +1,23 @@
+name = "Catppuccin Mocha"
+dark = true
+
+[colors]
+base = [30, 30, 46, 255]
+chrome = [17, 17, 27, 255]
+surface = [49, 50, 68, 255]
+surface_hover = [69, 71, 90, 255]
+surface_selected = [88, 91, 112, 255]
+primary = [203, 166, 247, 255]
+primary_light = [180, 190, 254, 255]
+on_primary = [17, 17, 27, 255]
+accent = [245, 194, 231, 255]
+text = [205, 214, 244, 255]
+text_dim = [166, 173, 200, 255]
+text_disabled = [108, 112, 134, 255]
+border = [69, 71, 90, 255]
+warning = [249, 226, 175, 255]
+error = [243, 139, 168, 255]
+
+[spectrum]
+color_low = [245, 194, 231, 144]
+color_high = [180, 190, 254, 144]
