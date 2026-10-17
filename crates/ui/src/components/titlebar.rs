@@ -22,6 +22,7 @@ pub fn titlebar(
     title: &str,
     can_maximize: bool,
     show_pages: bool,
+    now_playing: Option<&str>,
 ) -> TitlebarEvent {
     let mut event = TitlebarEvent::default();
     let height = theme.shape.titlebar_height;
@@ -46,6 +47,21 @@ pub fn titlebar(
                 egui::FontId::proportional(theme.text.small),
                 c.text_dim,
             );
+            if let Some(song) = now_playing {
+                // Keep clear of the button group on the right, and mirror it on the left.
+                let side = height * 1.4 * 5.0;
+                let area = Rect::from_x_y_ranges(
+                    (bar.left() + side)..=(bar.right() - side),
+                    bar.y_range(),
+                );
+                ui.painter().with_clip_rect(area).text(
+                    bar.center(),
+                    egui::Align2::CENTER_CENTER,
+                    song,
+                    egui::FontId::proportional(theme.text.small),
+                    c.text,
+                );
+            }
             ui.scope_builder(
                 egui::UiBuilder::new()
                     .max_rect(bar)
