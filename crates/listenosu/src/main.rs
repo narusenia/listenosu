@@ -25,6 +25,11 @@ fn main() -> eframe::Result {
     )
 }
 
+/// A saved size from an older layout may be below today's minimum, which clips the content.
+pub fn at_least(size: [f32; 2], min: [f32; 2]) -> [f32; 2] {
+    [size[0].max(min[0]), size[1].max(min[1])]
+}
+
 /// Opens where the window was last closed, in the mode it was in.
 fn viewport(config: &Config) -> egui::ViewportBuilder {
     let shape = Theme::lazer().shape;
@@ -41,7 +46,7 @@ fn viewport(config: &Config) -> egui::ViewportBuilder {
     // The app draws its own title bar.
     let mut viewport = egui::ViewportBuilder::default()
         .with_decorations(false)
-        .with_inner_size(saved.map_or(default_size, |g| g.size))
+        .with_inner_size(saved.map_or(default_size, |g| at_least(g.size, min)))
         .with_min_inner_size(min);
     // A position from a monitor that is gone would open the window out of reach; the limit is a rough guard.
     if let Some(g) = saved.filter(|g| g.position.iter().all(|v| v.abs() < 20_000.0)) {
