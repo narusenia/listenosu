@@ -82,7 +82,14 @@ impl BackdropLoader {
 }
 
 fn decode(path: PathBuf) -> Option<Decoded> {
-    let image = image::open(&path).ok()?.thumbnail(MAX_SIDE, MAX_SIDE);
+    // lazer's stored files have no extension, so the format must come from the content.
+    let image = image::ImageReader::open(&path)
+        .ok()?
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()?
+        .thumbnail(MAX_SIDE, MAX_SIDE);
     let rgba = image.to_rgba8();
     Some(Decoded {
         path,
@@ -90,4 +97,22 @@ fn decode(path: PathBuf) -> Option<Decoded> {
         height: rgba.height() as usize,
         rgba: rgba.into_raw(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decodes_a_file_without_an_extension() {
+        let path = std::env::temp_dir().join("listenosu-backdrop-test-no-extension");
+        image::RgbaImage::new(4, 2)
+            .save_with_format(&path, image::ImageFormat::Png)
+            .unwrap();
+        let decoded = decode(path.clone());
+        std::fs::remove_file(&path).unwrap();
+        let decoded = decoded.expect("decoded");
+        // `thumbnail` scales to fit, so only the aspect ratio is stable.
+        assert_eq!(decoded.width, decoded.height * 2);
+    }
 }
