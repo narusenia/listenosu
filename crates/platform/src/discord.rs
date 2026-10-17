@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use discord_rich_presence::activity::{Activity, ActivityType, Timestamps};
+use discord_rich_presence::activity::{Activity, ActivityType, StatusDisplayType, Timestamps};
 use discord_rich_presence::{DiscordIpc, DiscordIpcClient};
 
 /// Discord is often not running; retry the connection no more often than this.
@@ -60,6 +60,8 @@ impl Presence {
         }
         let mut activity = Activity::new()
             .activity_type(ActivityType::Listening)
+            // The member list shows the song title instead of the app name.
+            .status_display_type(StatusDisplayType::Details)
             .details(l.title)
             .state(l.artist);
         if l.playing {
