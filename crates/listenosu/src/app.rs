@@ -8,6 +8,7 @@ use eframe::egui;
 use library::Song;
 use library::playlist::Playlists;
 use library::store::AppDirs;
+use platform::hotkey::Hotkey;
 use platform::media::{Command, Media, Track};
 use platform::tray::{Tray, TrayEvent};
 use player::{Event, Player, Repeat, Status};
@@ -99,6 +100,10 @@ pub struct App {
     quitting: Arc<AtomicBool>,
     /// The window is hidden in the tray; the spectrum is not analyzed meanwhile.
     hidden: Arc<AtomicBool>,
+    /// None when the OS refuses a global hotkey manager.
+    hotkey: Option<Hotkey>,
+    /// The binding `hotkey` has registered, to tell when the settings changed it.
+    hotkey_active: Option<String>,
 }
 
 impl App {
@@ -151,7 +156,11 @@ impl App {
             tray_commands,
             quitting,
             hidden,
+            hotkey: None,
+            hotkey_active: None,
         };
+        app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
+        app.sync_hotkey();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
         app.open_catalog();
@@ -756,8 +765,31 @@ impl App {
                     .map(|c| song_view(&song, c.is_missing(&song), self.config.romanized));
             }
         }
+        self.sync_hotkey();
         self.apply_window_level(ctx);
         self.touch_config();
+    }
+
+    /// Registers the configured hotkey when it is on, and drops it otherwise.
+    fn sync_hotkey(&mut self) {
+        let wanted = self
+            .config
+            .hotkeys
+            .then(|| self.config.hotkey_play_pause.clone())
+            .flatten();
+        if wanted == self.hotkey_active {
+            return;
+        }
+        let Some(hotkey) = &mut self.hotkey else {
+            return;
+        };
+        // Remember the attempt even if it fails, so a taken combination is reported once.
+        self.hotkey_active = wanted.clone();
+        if let Err(error) = hotkey.set(wanted.as_deref()) {
+            let text = format!("Could not register the hotkey: {error}");
+            self.toasts
+                .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
+        }
     }
 
     fn apply_window_level(&self, ctx: &egui::Context) {
@@ -1050,6 +1082,15 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {
+    let ctx = ctx.clone();
+    Hotkey::new(move || {
+        let _ = commands.send(Command::Toggle);
+        ctx.request_repaint();
+    })
+    .ok()
 }
 
 fn open_tray(
