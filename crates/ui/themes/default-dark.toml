@@ -1,0 +1,23 @@
+name = "Default Dark"
+dark = true
+
+[colors]
+base = [30, 30, 30, 255]
+chrome = [20, 20, 20, 255]
+surface = [37, 37, 38, 255]
+surface_hover = [47, 47, 49, 255]
+surface_selected = [58, 63, 82, 255]
+primary = [59, 130, 246, 255]
+primary_light = [96, 165, 250, 255]
+on_primary = [255, 255, 255, 255]
+accent = [34, 211, 238, 255]
+text = [242, 242, 242, 255]
+text_dim = [168, 168, 176, 255]
+text_disabled = [106, 106, 114, 255]
+border = [58, 58, 63, 255]
+warning = [251, 191, 36, 255]
+error = [248, 113, 113, 255]
+
+[spectrum]
+color_low = [34, 211, 238, 144]
+color_high = [96, 165, 250, 144]

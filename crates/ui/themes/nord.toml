@@ -1,0 +1,23 @@
+name = "Nord"
+dark = true
+
+[colors]
+base = [46, 52, 64, 255]
+chrome = [39, 44, 54, 255]
+surface = [59, 66, 82, 255]
+surface_hover = [67, 76, 94, 255]
+surface_selected = [76, 86, 106, 255]
+primary = [94, 129, 172, 255]
+primary_light = [129, 161, 193, 255]
+on_primary = [236, 239, 244, 255]
+accent = [136, 192, 208, 255]
+text = [236, 239, 244, 255]
+text_dim = [169, 177, 193, 255]
+text_disabled = [107, 116, 136, 255]
+border = [67, 76, 94, 255]
+warning = [235, 203, 139, 255]
+error = [191, 97, 106, 255]
+
+[spectrum]
+color_low = [136, 192, 208, 144]
+color_high = [129, 161, 193, 144]

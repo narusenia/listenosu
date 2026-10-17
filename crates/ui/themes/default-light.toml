@@ -1,0 +1,26 @@
+name = "Default Light"
+dark = false
+
+[colors]
+base = [245, 245, 247, 255]
+chrome = [230, 230, 234, 255]
+surface = [255, 255, 255, 255]
+surface_hover = [236, 236, 240, 255]
+surface_selected = [219, 231, 255, 255]
+primary = [37, 99, 235, 255]
+primary_light = [59, 130, 246, 255]
+on_primary = [255, 255, 255, 255]
+accent = [219, 39, 119, 255]
+text = [28, 28, 30, 255]
+text_dim = [85, 85, 94, 255]
+text_disabled = [154, 154, 163, 255]
+border = [212, 212, 218, 255]
+warning = [180, 83, 9, 255]
+error = [220, 38, 38, 255]
+
+[backdrop]
+tint = [245, 245, 247, 255]
+
+[spectrum]
+color_low = [219, 39, 119, 144]
+color_high = [59, 130, 246, 144]

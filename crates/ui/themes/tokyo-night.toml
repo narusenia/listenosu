@@ -1,0 +1,23 @@
+name = "Tokyo Night"
+dark = true
+
+[colors]
+base = [26, 27, 38, 255]
+chrome = [22, 22, 30, 255]
+surface = [31, 35, 53, 255]
+surface_hover = [41, 46, 66, 255]
+surface_selected = [51, 70, 124, 255]
+primary = [122, 162, 247, 255]
+primary_light = [125, 207, 255, 255]
+on_primary = [26, 27, 38, 255]
+accent = [187, 154, 247, 255]
+text = [192, 202, 245, 255]
+text_dim = [154, 165, 206, 255]
+text_disabled = [86, 95, 137, 255]
+border = [59, 66, 97, 255]
+warning = [224, 175, 104, 255]
+error = [247, 118, 142, 255]
+
+[spectrum]
+color_low = [187, 154, 247, 144]
+color_high = [125, 207, 255, 144]

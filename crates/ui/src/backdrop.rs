@@ -63,12 +63,8 @@ impl Backdrop {
             }
         }
         if self.current.is_some() {
-            painter.rect_filled(
-                rect,
-                0.0,
-                Color32::from_black_alpha((theme.backdrop.dim * 255.0) as u8),
-            );
-            let edge = Color32::from_black_alpha((theme.backdrop.scrim * 255.0) as u8);
+            painter.rect_filled(rect, 0.0, tint(theme, theme.backdrop.dim));
+            let edge = tint(theme, theme.backdrop.scrim);
             let reach = rect.height() * SCRIM_REACH;
             let (top, bottom) = (
                 rect.with_max_y(rect.top() + reach),
@@ -212,4 +208,9 @@ mod tests {
         let tall = cover_uv(0.5, 1.0);
         assert_eq!((tall.min.y, tall.max.y), (0.25, 0.75));
     }
+}
+
+/// The backdrop's tint color at `strength` (0.0 to 1.0) opacity.
+fn tint(theme: &Theme, strength: f32) -> Color32 {
+    theme.backdrop.tint.gamma_multiply(strength)
 }

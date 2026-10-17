@@ -6,5 +6,6 @@ pub mod icon;
 pub mod model;
 pub mod screens;
 pub mod theme;
+pub mod themes;
 
 pub use theme::Theme;
