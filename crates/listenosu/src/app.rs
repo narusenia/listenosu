@@ -994,7 +994,12 @@ impl App {
                     }
                 }
                 Page::About => {
-                    if about_screen(ui, &self.theme, env!("CARGO_PKG_VERSION")) {
+                    if about_screen(
+                        ui,
+                        &self.theme,
+                        env!("CARGO_PKG_VERSION"),
+                        &ui::icon::texture(ctx),
+                    ) {
                         self.page = Page::Main;
                     }
                 }
@@ -1148,7 +1153,8 @@ fn open_tray(
     hidden: &Arc<AtomicBool>,
 ) -> Option<Tray> {
     let (ctx, quitting, hidden) = (ctx.clone(), quitting.clone(), hidden.clone());
-    Tray::new(move |event| {
+    let icon = ui::icon::small();
+    Tray::new((icon.rgba, icon.width, icon.height), move |event| {
         match event {
             TrayEvent::Show => {
                 hidden.store(false, Ordering::SeqCst);
