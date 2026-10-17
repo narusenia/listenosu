@@ -1,3 +1,6 @@
+// No console window in release builds; debug keeps it for log output.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod app;
 mod backdrop_loader;
 mod catalog;
