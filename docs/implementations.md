@@ -152,7 +152,7 @@ listenosu/
 - [~] メディアキーと OS のメディア表示（SMTC / Now Playing / MPRIS）（`platform::media`。souvlaki。Windows の実機確認待ち）
 - [~] システムトレイ（× でトレイへ、メニュー、初回の通知）（`platform::tray`。× で隠す・左クリックで戻る・メニュー（Show / Play・Pause / Next / Previous / Quit）・隠れている間のスペクトラム停止は実装。初回の通知は未実装。目視確認待ち）
 - [~] グローバルホットキー（既定は OFF、割り当て画面）（`platform::hotkey`。再生 / 一時停止の 1 つだけ。設定の ON/OFF と割り当ての変更で登録し直す。実機確認待ち）
-- [~] Discord Rich Presence（既定は OFF）（`platform::discord`。Application ID は設定画面の入力欄で入れる。実機確認待ち）
+- [~] Discord Rich Presence（既定は OFF）（`platform::discord`。Application ID は設定画面の入力欄で入れる。Windows で動作をユーザーが確認済み）
 
 **完了条件**: Windows で全機能が動く。macOS ではメディア表示とトレイが動く
 
@@ -215,3 +215,4 @@ listenosu/
 - 2026-10-17: グローバルホットキーを実装した（global-hotkey）。設定画面が書く `Ctrl+Shift+P` 形式の文字列をそのまま `HotKey` として読める（テストあり）。登録できない組み合わせ（他のアプリが使用中など）はトーストで知らせ、同じ組み合わせでは繰り返さない。押下はトレイと同じ `Command::Toggle` のチャンネルに流す。割り当て可能なのは再生 / 一時停止のみ（次へ・前へは設定画面に項目が無いので未対応）
 - 2026-10-17: Discord Rich Presence を実装した（discord-rich-presence）。Application ID はリポジトリに入れず、利用者が Discord Developer Portal で作って `settings.json` の `discord_app_id` に書く（設定画面の入力欄は無い）。設定の Discord が ON で ID が空なら何もしない。曲名・アーティストを「聴いている」として出し、再生中だけ経過時間を付ける。Discord が起動していなければ 15 秒おきに再接続を試す。曲が終わる・OFF にする・終了すると表示を消す。シークや一時停止からの再開は、開始時刻が 2 秒以上ずれたときに送り直す
 - 2026-10-17: Discord の Application ID を設定画面から入れられるようにした（Integrations の Discord Rich Presence の下。Discord が ON のときだけ有効）。直前の記録の「設定画面の入力欄は無い」は取り消し。入力のたびに設定が反映されるので、途中の文字列でも一時的にその ID で接続を試みる（15 秒おきの再試行で、入力が済めば正しい ID に切り替わる）
+- 2026-10-17: Discord Rich Presence の動作をユーザーが確認した。メンバー一覧の 1 行表示には、`StatusDisplayType::Details` を指定して曲名を出す（既定ではアプリ名だけが出る）。メディアキー・トレイ・ホットキーと、トレイに隠れている間の曲送りは引き続き未確認
