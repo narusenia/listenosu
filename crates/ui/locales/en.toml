@@ -1,0 +1,118 @@
+[common]
+back = "Back"
+cancel = "Cancel"
+ok = "OK"
+add = "Add"
+clear = "Clear"
+search = "Search"
+file_not_found = "File not found"
+press_a_key = "Press a key…"
+unassigned = "Unassigned"
+
+[playbar]
+shuffle = "Shuffle"
+repeat_off = "Repeat: off"
+repeat_all = "Repeat: all"
+repeat_one = "Repeat: one"
+song_list = "Song list"
+mini_player = "Mini player"
+full_window = "Full window"
+
+[song_menu]
+play = "Play"
+play_next = "Play next"
+add_to_queue = "Add to queue"
+add_to_playlist = "Add to playlist"
+show_in_folder = "Show in folder"
+copy_title = "Copy title"
+
+[playlists]
+title = "Playlists"
+new = "New playlist"
+rename = "Rename"
+delete = "Delete"
+confirm_delete = "Confirm delete"
+
+[side]
+queue = "Queue"
+playlists = "Playlists"
+up_next = "Up next ({count})"
+add_selected = "Add selected song"
+add_selected_to_playlist = "Add selected song to this playlist"
+
+[main]
+view = "View"
+sort = "Sort"
+all_songs = "All songs"
+collection = "Collection: {name}"
+playlist = "Playlist: {name}"
+
+[sort]
+title = "Title"
+artist = "Artist"
+date_added = "Date added"
+length = "Length"
+bpm = "BPM"
+last_played = "Last played"
+
+[about]
+title = "About"
+version = "Version {version}"
+unofficial = "Unofficial. Not affiliated with or endorsed by ppy or osu!."
+no_logo = "The osu! logo and the Torus font are not included."
+licenses = "Licenses"
+license_app = "listenosu!: MIT License"
+license_nunito = "Nunito: SIL Open Font License 1.1"
+license_noto = "Noto Sans JP: SIL Open Font License 1.1"
+license_lucide = "Lucide icons: ISC License"
+
+[first_run]
+title = "osu!lazer was not found"
+looked_in = "Looked in:"
+choose_folder = "Choose folder…"
+retry = "Try again"
+
+[settings]
+title = "Settings"
+library = "Library"
+data_folder = "osu!lazer data folder"
+browse = "Browse…"
+display = "Display"
+language = "Language"
+language_system = "System"
+romanized = "Show romanized titles and artists"
+group_songs = "Group songs with the same title and artist"
+spectrum = "Audio spectrum"
+spectrum_bars = "Spectrum bars"
+spectrum_decay = "Spectrum fall speed"
+spectrum_height = "Spectrum height"
+backdrop_blur = "Backdrop blur"
+backdrop_dim = "Backdrop dimming"
+playback = "Playback"
+crossfade = "Crossfade (seconds, 0 = off)"
+window = "Window"
+tray_on_close = "Hide to the tray when the window is closed"
+mini_on_top = "Keep the mini player on top"
+integrations = "Integrations"
+hotkeys = "Global hotkeys"
+hotkey_play_pause = "Play / pause hotkey"
+discord = "Discord Rich Presence"
+discord_app_id = "Discord Application ID"
+application_id = "Application ID"
+updates = "Updates"
+check_updates = "Check for updates at startup"
+
+[toast]
+audio_unavailable = "Audio output is not available: {why}"
+skipped_one = "Skipped (file not found): {name}"
+skipped_many = "Skipped {count} songs whose files were not found"
+added_to = "Added to {name}"
+already_in = "Already in {name}"
+save_playlists_failed = "Could not save the playlists."
+hotkey_failed = "Could not register the hotkey: {error}"
+folder_unavailable = "Choosing a folder is not available yet. Set the folder in settings.json."
+
+[problem]
+helper_missing = "The library helper was not found. Showing the last known library."
+read_failed = "Could not read osu!lazer's library ({message}). Showing the last known library."
+helper_stopped = "The library helper stopped ({reason}). Showing the last known library."
