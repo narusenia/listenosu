@@ -48,6 +48,9 @@ pub struct Config {
     pub discord: bool,
     /// Application ID from the Discord Developer Portal; written by hand in settings.json.
     pub discord_app_id: String,
+    /// Both off by default: they put the song's osu! id in front of Discord and ppy's image server.
+    pub discord_cover: bool,
+    pub discord_button: bool,
     pub check_updates: bool,
 
     /// Whether the queue / playlists panel is expanded.
@@ -90,6 +93,8 @@ impl Default for Config {
             hotkey_previous: None,
             discord: false,
             discord_app_id: String::new(),
+            discord_cover: false,
+            discord_button: false,
             check_updates: true,
             volume: 0.7,
             shuffle: false,
@@ -156,6 +161,8 @@ impl Config {
             hotkey_previous: self.hotkey_previous.clone(),
             discord: self.discord,
             discord_app_id: self.discord_app_id.clone(),
+            discord_cover: self.discord_cover,
+            discord_button: self.discord_button,
             check_updates: self.check_updates,
             capturing: None,
         }
@@ -182,6 +189,8 @@ impl Config {
         self.hotkey_previous = s.hotkey_previous.clone();
         self.discord = s.discord;
         self.discord_app_id = s.discord_app_id.clone();
+        self.discord_cover = s.discord_cover;
+        self.discord_button = s.discord_button;
         self.check_updates = s.check_updates;
     }
 }

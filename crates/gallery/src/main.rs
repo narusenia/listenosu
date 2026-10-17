@@ -98,6 +98,8 @@ impl Gallery {
                 hotkey_previous: None,
                 discord: false,
                 discord_app_id: String::new(),
+                discord_cover: false,
+                discord_button: false,
                 check_updates: true,
                 capturing: None,
             },

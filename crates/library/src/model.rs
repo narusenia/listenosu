@@ -92,6 +92,15 @@ mod tests {
     }
 
     #[test]
+    fn online_id_may_be_missing_from_old_caches_and_playlists() {
+        let json = r#"{"audio_hash":"ab","background_hash":null,"title":"t","title_unicode":"",
+            "artist":"a","artist_unicode":"","source":"","tags":"","author":"","bpm":120.0,
+            "length_ms":1000.0,"date_added_ms":0,"last_played_ms":null,"beatmap_md5s":[]}"#;
+        let s: Song = serde_json::from_str(json).unwrap();
+        assert_eq!(s.online_id, None);
+    }
+
+    #[test]
     fn audio_path_uses_the_two_level_hash_layout() {
         let s = Song {
             audio_hash: "abcdef".into(),
