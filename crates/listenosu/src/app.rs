@@ -8,6 +8,7 @@ use eframe::egui;
 use library::Song;
 use library::playlist::Playlists;
 use library::store::AppDirs;
+use platform::discord::{Listening, Presence};
 use platform::hotkey::Hotkey;
 use platform::media::{Command, Media, Track};
 use platform::tray::{Tray, TrayEvent};
@@ -104,6 +105,9 @@ pub struct App {
     hotkey: Option<Hotkey>,
     /// The binding `hotkey` has registered, to tell when the settings changed it.
     hotkey_active: Option<String>,
+    /// Created when Discord is on and an Application ID is set.
+    discord: Option<Presence>,
+    discord_app_id: String,
 }
 
 impl App {
@@ -158,9 +162,12 @@ impl App {
             hidden,
             hotkey: None,
             hotkey_active: None,
+            discord: None,
+            discord_app_id: String::new(),
         };
         app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
         app.sync_hotkey();
+        app.sync_discord_client();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
         app.open_catalog();
@@ -529,6 +536,19 @@ impl App {
             status = self.player.as_ref().map(Player::status).unwrap_or_default();
         }
         let playing = status.index.map(|_| !status.paused);
+        if let Some(discord) = &mut self.discord {
+            let listening = self
+                .now_view
+                .as_ref()
+                .zip(playing)
+                .map(|(view, playing)| Listening {
+                    title: &view.title,
+                    artist: &view.artist,
+                    playing,
+                    position_secs: status.position,
+                });
+            discord.update(listening.as_ref());
+        }
         if let Some(media) = &mut self.media {
             media.set_state(playing, status.position);
         }
@@ -766,8 +786,21 @@ impl App {
             }
         }
         self.sync_hotkey();
+        self.sync_discord_client();
         self.apply_window_level(ctx);
         self.touch_config();
+    }
+
+    /// Creates or drops the Discord presence when the setting or the Application ID changed.
+    fn sync_discord_client(&mut self) {
+        let id = self.config.discord_app_id.trim();
+        let wanted = if self.config.discord { id } else { "" };
+        if wanted == self.discord_app_id {
+            return;
+        }
+        self.discord_app_id = wanted.to_owned();
+        // Dropping the old one clears the presence.
+        self.discord = (!wanted.is_empty()).then(|| Presence::new(wanted));
     }
 
     /// Registers the configured hotkey when it is on, and drops it otherwise.
