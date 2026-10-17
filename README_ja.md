@@ -45,5 +45,6 @@ listenosu! は [MIT License](LICENSE) です。次のフォントとアイコン
 
 - Nunito と Noto Sans JP：SIL Open Font License 1.1
 - Lucide アイコン：ISC License
+- カラーテーマ（Catppuccin、Nord、Dracula、Tokyo Night、Gruvbox、Solarized、Rosé Pine の配色）：MIT License
 
 osu! のロゴと Torus フォントは含みません。「osu!」は ppy Pty Ltd の名称です。

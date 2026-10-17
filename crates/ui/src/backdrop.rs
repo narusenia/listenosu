@@ -168,6 +168,11 @@ fn downscale(rgba: &[u8], width: usize, height: usize, factor: usize) -> (Vec<u8
     (out, w, h)
 }
 
+/// The backdrop's tint color at `strength` (0.0 to 1.0) opacity.
+fn tint(theme: &Theme, strength: f32) -> Color32 {
+    theme.backdrop.tint.gamma_multiply(strength)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,9 +213,4 @@ mod tests {
         let tall = cover_uv(0.5, 1.0);
         assert_eq!((tall.min.y, tall.max.y), (0.25, 0.75));
     }
-}
-
-/// The backdrop's tint color at `strength` (0.0 to 1.0) opacity.
-fn tint(theme: &Theme, strength: f32) -> Color32 {
-    theme.backdrop.tint.gamma_multiply(strength)
 }

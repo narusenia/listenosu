@@ -59,6 +59,8 @@ enum Page {
 
 pub struct App {
     theme: Theme,
+    /// The built-in and user themes the settings can pick from.
+    themes: Vec<Theme>,
     theme_applied: bool,
     dirs: Option<AppDirs>,
     config: Config,
@@ -130,10 +132,17 @@ impl App {
             .map(|d| Playlists::load(&d.playlists_file()))
             .unwrap_or_default();
         let side_open = config.side_open;
+        let themes = ui::themes::load(dirs.as_ref().map(AppDirs::themes_dir).as_deref());
+        let theme = themes
+            .iter()
+            .find(|t| t.name == config.theme)
+            .cloned()
+            .unwrap_or_default();
         let (tray_tx, tray_commands) = channel();
         let (quitting, hidden) = (Arc::default(), Arc::default());
         let mut app = Self {
-            theme: Theme::lazer(),
+            theme,
+            themes,
             theme_applied: false,
             settings: config.settings_state(),
             main: MainState {
@@ -830,7 +839,14 @@ impl App {
         let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
         let language_before = self.config.language;
         let blur_before = self.config.backdrop_blur;
+        let theme_before = self.config.theme.clone();
         self.config.apply_settings(&self.settings);
+        if theme_before != self.config.theme
+            && let Some(theme) = self.themes.iter().find(|t| t.name == self.config.theme)
+        {
+            self.theme = theme.clone();
+            self.theme.apply(ctx);
+        }
         self.apply_theme_settings();
         if blur_before != self.config.backdrop_blur
             && let Some(source) = self.backdrop_source.clone()
@@ -1102,8 +1118,10 @@ impl App {
             .frame(egui::Frame::NONE.fill(fill))
             .show(ui, |ui| match self.page {
                 Page::Settings => {
+                    let theme_names: Vec<String> =
+                        self.themes.iter().map(|t| t.name.clone()).collect();
                     let before = self.settings.clone();
-                    let event = settings_screen(ui, &self.theme, &mut self.settings);
+                    let event = settings_screen(ui, &self.theme, &theme_names, &mut self.settings);
                     if event.choose_folder {
                         self.pick_folder(ctx);
                     }

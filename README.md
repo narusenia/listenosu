@@ -45,5 +45,6 @@ listenosu! is under the [MIT License](LICENSE). It bundles these fonts and icons
 
 - Nunito and Noto Sans JP: SIL Open Font License 1.1
 - Lucide icons: ISC License
+- Color themes (palettes of Catppuccin, Nord, Dracula, Tokyo Night, Gruvbox, Solarized and Rosé Pine): MIT License
 
 The osu! logo and the Torus font are not included. "osu!" is a name of ppy Pty Ltd.

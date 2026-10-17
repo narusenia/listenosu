@@ -46,6 +46,11 @@ impl AppDirs {
         self.config.join("playlists.json")
     }
 
+    /// Where a user puts theme files (`*.toml`).
+    pub fn themes_dir(&self) -> PathBuf {
+        self.config.join("themes")
+    }
+
     pub fn library_cache_file(&self) -> PathBuf {
         self.cache.join("library.json")
     }

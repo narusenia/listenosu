@@ -28,6 +28,8 @@ pub struct LastSession {
 pub struct Config {
     pub data_folder: String,
     pub language: usize,
+    /// Name of the theme, as listed in the settings.
+    pub theme: String,
     pub romanized: bool,
     pub group_same: bool,
     pub crossfade_secs: f32,
@@ -68,6 +70,7 @@ impl Default for Config {
         Self {
             data_folder: String::new(),
             language: 0,
+            theme: Theme::lazer().name,
             romanized: false,
             group_same: true,
             side_open: false,
@@ -135,6 +138,7 @@ impl Config {
         SettingsState {
             data_folder: self.data_folder.clone(),
             language: self.language,
+            theme: self.theme.clone(),
             romanized: self.romanized,
             group_same: self.group_same,
             crossfade_secs: self.crossfade_secs,
@@ -160,6 +164,7 @@ impl Config {
     pub fn apply_settings(&mut self, s: &SettingsState) {
         self.data_folder = s.data_folder.clone();
         self.language = s.language;
+        self.theme = s.theme.clone();
         self.romanized = s.romanized;
         self.group_same = s.group_same;
         self.crossfade_secs = s.crossfade_secs;
