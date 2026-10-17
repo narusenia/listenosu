@@ -1,6 +1,8 @@
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use discord_rich_presence::activity::{Activity, ActivityType, StatusDisplayType, Timestamps};
+use discord_rich_presence::activity::{
+    Activity, ActivityType, Assets, Button, StatusDisplayType, Timestamps,
+};
 use discord_rich_presence::{DiscordIpc, DiscordIpcClient};
 
 /// Discord is often not running; retry the connection no more often than this.
@@ -14,6 +16,25 @@ pub struct Listening<'a> {
     pub artist: &'a str,
     pub playing: bool,
     pub position_secs: f64,
+    /// 0 when unknown; otherwise Discord shows the time left as a progress bar.
+    pub length_secs: f64,
+    /// Cover image URL. Discord (and the host of the image) learn which song is playing.
+    pub cover_url: Option<&'a str>,
+    /// Label and URL of the one button shown under the activity.
+    pub button: Option<(&'a str, &'a str)>,
+}
+
+/// What was last sent; a new activity is written only when this changes.
+#[derive(PartialEq)]
+struct Sent {
+    title: String,
+    artist: String,
+    playing: bool,
+    /// Start time shown by Discord, in Unix milliseconds.
+    start: i64,
+    length_secs: u64,
+    cover_url: Option<String>,
+    button: Option<(String, String)>,
 }
 
 /// Discord Rich Presence. Everything is best effort: no Discord, no presence, no error.
@@ -21,8 +42,7 @@ pub struct Presence {
     client: DiscordIpcClient,
     connected: bool,
     last_try: Option<Instant>,
-    /// What was last sent: title, artist, playing, and the start time shown by Discord.
-    sent: Option<(String, String, bool, i64)>,
+    sent: Option<Sent>,
 }
 
 impl Presence {
@@ -48,10 +68,24 @@ impl Presence {
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_millis() as i64);
         let start = now_ms - (l.position_secs * 1000.0) as i64;
-        if let Some((title, artist, playing, shown)) = &self.sent {
-            // While paused there is no clock, so the start time does not matter.
-            let moved = l.playing && (shown - start).abs() > DRIFT_MS;
-            if title == l.title && artist == l.artist && *playing == l.playing && !moved {
+        let mut now = Sent {
+            title: l.title.to_owned(),
+            artist: l.artist.to_owned(),
+            playing: l.playing,
+            start,
+            length_secs: l.length_secs as u64,
+            cover_url: l.cover_url.map(str::to_owned),
+            button: l
+                .button
+                .map(|(label, url)| (label.to_owned(), url.to_owned())),
+        };
+        if let Some(sent) = &self.sent {
+            // While paused there is no clock, so the start time does not matter. Within the
+            // drift the old start stays, so the comparison below sees no change.
+            if !l.playing || (sent.start - start).abs() <= DRIFT_MS {
+                now.start = sent.start;
+            }
+            if *sent == now {
                 return;
             }
         }
@@ -65,10 +99,21 @@ impl Presence {
             .details(l.title)
             .state(l.artist);
         if l.playing {
-            activity = activity.timestamps(Timestamps::new().start(start));
+            let mut timestamps = Timestamps::new().start(start);
+            if l.length_secs > 0.0 {
+                timestamps = timestamps.end(start + (l.length_secs * 1000.0) as i64);
+            }
+            activity = activity.timestamps(timestamps);
+        }
+        if let Some(url) = l.cover_url {
+            activity = activity.assets(Assets::new().large_image(url));
+        }
+        if let Some((label, url)) = l.button {
+            activity = activity.buttons(vec![Button::new(label, url)]);
         }
         if self.client.set_activity(activity).is_ok() {
-            self.sent = Some((l.title.to_owned(), l.artist.to_owned(), l.playing, start));
+            now.start = start;
+            self.sent = Some(now);
         } else {
             self.connected = false;
         }

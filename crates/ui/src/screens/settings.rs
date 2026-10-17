@@ -45,6 +45,9 @@ pub struct SettingsState {
     pub discord: bool,
     /// Application ID from the Discord Developer Portal; presence stays off while it is empty.
     pub discord_app_id: String,
+    /// Send the beatmap cover (an image URL on osu!'s server) and a link button to Discord.
+    pub discord_cover: bool,
+    pub discord_button: bool,
     pub check_updates: bool,
     /// The hotkey row (0 = play / pause, 1 = next, 2 = previous) waiting for a key press.
     pub capturing: Option<usize>,
@@ -174,6 +177,12 @@ pub fn settings_screen(
                                 .desired_width(theme.shape.list_width / 2.0)
                                 .hint_text(t("settings.application_id")),
                         );
+                    });
+                    setting_row(ui, theme, t("settings.discord_cover"), |ui| {
+                        toggle(ui, theme, &mut state.discord_cover);
+                    });
+                    setting_row(ui, theme, t("settings.discord_button"), |ui| {
+                        toggle(ui, theme, &mut state.discord_button);
                     });
                 });
 

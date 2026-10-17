@@ -3,6 +3,7 @@ using Realms;
 record Song(
     string AudioHash,
     string? BackgroundHash,
+    int? OnlineId,
     string Title,
     string TitleUnicode,
     string Artist,
@@ -40,6 +41,9 @@ static class Library
                 files[usage.DynamicApi.Get<string>("Filename")] = file.DynamicApi.Get<string>("Hash");
             }
             var added = set.DynamicApi.Get<DateTimeOffset>("DateAdded");
+            // lazer stores -1 for a set that was not downloaded from osu!.
+            var rawId = Optional<int>(set, "OnlineID");
+            int? onlineId = rawId > 0 ? rawId : null;
 
             foreach (var beatmap in set.DynamicApi.GetList<IRealmObjectBase>("Beatmaps"))
             {
@@ -63,6 +67,7 @@ static class Library
                 songs[audio] = new Song(
                     audio,
                     files.TryGetValue(background, out var bg) ? bg : null,
+                    onlineId,
                     meta.DynamicApi.Get<string>("Title"),
                     meta.DynamicApi.Get<string>("TitleUnicode"),
                     meta.DynamicApi.Get<string>("Artist"),

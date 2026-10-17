@@ -41,6 +41,7 @@
 | --- | --- | --- |
 | `audio_hash` | string | 音声ファイルの SHA-256。実体は `<data_dir>/files/<h[0]>/<h[0..2]>/<hash>` |
 | `background_hash` | string / null | 背景画像のハッシュ（同じ配置） |
+| `online_id` | number / null | 代表の譜面セットの osu! 上の ID（譜面ページと画像の URL に使う）。osu! から取得していないセットや、読めなかったときは null |
 | `title`, `title_unicode` | string | 曲名（ローマ字、原語）。空のときは空文字 |
 | `artist`, `artist_unicode` | string | アーティスト名（ローマ字、原語） |
 | `source`, `tags`, `author` | string | ソース、タグ、譜面作者 |

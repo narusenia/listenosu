@@ -600,6 +600,14 @@ impl App {
         }
         let playing = status.index.map(|_| !status.paused);
         if let Some(discord) = &mut self.discord {
+            // Songs without an osu! id get neither the cover nor the button.
+            let set_id = self.now_playing.as_ref().and_then(|s| s.online_id);
+            let cover = set_id
+                .filter(|_| self.config.discord_cover)
+                .map(|id| format!("https://assets.ppy.sh/beatmaps/{id}/covers/cover.jpg"));
+            let page = set_id
+                .filter(|_| self.config.discord_button)
+                .map(|id| format!("https://osu.ppy.sh/beatmapsets/{id}"));
             let listening = self
                 .now_view
                 .as_ref()
@@ -609,6 +617,11 @@ impl App {
                     artist: &view.artist,
                     playing,
                     position_secs: status.position,
+                    length_secs: status.length,
+                    cover_url: cover.as_deref(),
+                    button: page
+                        .as_deref()
+                        .map(|url| (t("settings.discord_button_label"), url)),
                 });
             discord.update(listening.as_ref());
         }
