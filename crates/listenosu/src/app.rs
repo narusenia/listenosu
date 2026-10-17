@@ -1,3 +1,4 @@
+use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -33,6 +34,7 @@ use ui::screens::settings::{SettingsState, settings_screen};
 use crate::backdrop_loader::{BackdropLoader, Decoded};
 use crate::catalog::Catalog;
 use crate::config::{Config, Geometry, LastSession};
+use crate::instance;
 use crate::listing::{self, song_view};
 use crate::side::{Action, Side, SideInput};
 use crate::update::{self, Release};
@@ -124,7 +126,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, dirs: Option<AppDirs>, config: Config) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext<'_>,
+        dirs: Option<AppDirs>,
+        config: Config,
+        wake: Option<TcpListener>,
+    ) -> Self {
         let check_updates = config.check_updates;
         ui::fonts::install(&cc.egui_ctx);
         let playlists = dirs
@@ -196,6 +203,10 @@ impl App {
         app.sync_hotkey();
         app.sync_discord_client();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
+        if let Some(listener) = wake {
+            let (ctx, hidden) = (cc.egui_ctx.clone(), app.hidden.clone());
+            instance::serve(listener, move || show_window(&ctx, &hidden));
+        }
         app.side.open = side_open;
         app.apply_theme_settings();
         app.open_catalog();
@@ -1376,6 +1387,15 @@ fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey>
     .ok()
 }
 
+/// Brings the window back from the tray or the taskbar. Safe to call from any thread.
+fn show_window(ctx: &egui::Context, hidden: &AtomicBool) {
+    hidden.store(false, Ordering::SeqCst);
+    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+    ctx.request_repaint();
+}
+
 fn open_tray(
     ctx: &egui::Context,
     commands: Sender<Command>,
@@ -1386,12 +1406,7 @@ fn open_tray(
     let icon = ui::icon::small();
     Tray::new((icon.rgba, icon.width, icon.height), move |event| {
         match event {
-            TrayEvent::Show => {
-                hidden.store(false, Ordering::SeqCst);
-                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
-                ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
-                ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
-            }
+            TrayEvent::Show => show_window(&ctx, &hidden),
             TrayEvent::Quit => {
                 quitting.store(true, Ordering::SeqCst);
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
