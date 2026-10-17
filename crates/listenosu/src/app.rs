@@ -107,8 +107,8 @@ pub struct App {
     hidden: Arc<AtomicBool>,
     /// None when the OS refuses a global hotkey manager.
     hotkey: Option<Hotkey>,
-    /// The binding `hotkey` has registered, to tell when the settings changed it.
-    hotkey_active: Option<String>,
+    /// The bindings `hotkey` has registered, to tell when the settings changed them.
+    hotkey_active: [Option<String>; 3],
     /// Created when Discord is on and an Application ID is set.
     discord: Option<Presence>,
     discord_app_id: String,
@@ -167,7 +167,7 @@ impl App {
             quitting,
             hidden,
             hotkey: None,
-            hotkey_active: None,
+            hotkey_active: Default::default(),
             discord: None,
             discord_app_id: String::new(),
         };
@@ -861,11 +861,16 @@ impl App {
 
     /// Registers the configured hotkey when it is on, and drops it otherwise.
     fn sync_hotkey(&mut self) {
-        let wanted = self
-            .config
-            .hotkeys
-            .then(|| self.config.hotkey_play_pause.clone())
-            .flatten();
+        let config = &self.config;
+        let wanted = if config.hotkeys {
+            [
+                config.hotkey_play_pause.clone(),
+                config.hotkey_next.clone(),
+                config.hotkey_previous.clone(),
+            ]
+        } else {
+            Default::default()
+        };
         if wanted == self.hotkey_active {
             return;
         }
@@ -874,7 +879,13 @@ impl App {
         };
         // Remember the attempt even if it fails, so a taken combination is reported once.
         self.hotkey_active = wanted.clone();
-        if let Err(error) = hotkey.set(wanted.as_deref()) {
+        let [play_pause, next, previous] = &wanted;
+        let bindings = [
+            (play_pause.as_deref(), Command::Toggle),
+            (next.as_deref(), Command::Next),
+            (previous.as_deref(), Command::Previous),
+        ];
+        if let Err(error) = hotkey.set(&bindings) {
             let text = tr("toast.hotkey_failed", &[("error", &error.to_string())]);
             self.toasts
                 .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
@@ -1191,7 +1202,7 @@ impl eframe::App for App {
         self.apply_titlebar(&ctx, bar);
         // Esc leaves a page, unless the hotkey button is waiting for a key (Esc may be the key).
         if self.page != Page::Main
-            && !self.settings.capturing
+            && self.settings.capturing.is_none()
             && ctx.input(|i| i.key_pressed(egui::Key::Escape))
         {
             self.page = Page::Main;
@@ -1243,8 +1254,8 @@ fn reveal_in_file_manager(path: &Path) {
 
 fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {
     let ctx = ctx.clone();
-    Hotkey::new(move || {
-        let _ = commands.send(Command::Toggle);
+    Hotkey::new(move |command| {
+        let _ = commands.send(command);
         ctx.request_repaint();
     })
     .ok()

@@ -1,40 +1,73 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use global_hotkey::hotkey::HotKey;
 use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
 
-/// One system-wide hotkey. It is off until `set` is given a binding.
+use crate::media::Command;
+
+/// System-wide hotkeys. None is registered until `set` is given bindings.
 pub struct Hotkey {
     manager: GlobalHotKeyManager,
-    registered: Option<HotKey>,
+    registered: Vec<HotKey>,
+    commands: Arc<Mutex<HashMap<u32, Command>>>,
 }
 
 impl Hotkey {
     /// `on_press` runs on the UI thread's message loop, so it must only forward the event.
-    pub fn new(on_press: impl Fn() + Send + Sync + 'static) -> Result<Self, String> {
+    pub fn new(on_press: impl Fn(Command) + Send + Sync + 'static) -> Result<Self, String> {
         let manager = GlobalHotKeyManager::new().map_err(|e| e.to_string())?;
+        let commands: Arc<Mutex<HashMap<u32, Command>>> = Arc::default();
+        let lookup = commands.clone();
         GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
-            if event.state == HotKeyState::Pressed {
-                on_press();
+            if event.state != HotKeyState::Pressed {
+                return;
+            }
+            let command = lookup
+                .lock()
+                .ok()
+                .and_then(|map| map.get(&event.id).copied());
+            if let Some(command) = command {
+                on_press(command);
             }
         }));
         Ok(Self {
             manager,
-            registered: None,
+            registered: Vec::new(),
+            commands,
         })
     }
 
-    /// Replaces the current hotkey. `binding` looks like `Ctrl+Shift+P`; None turns it off.
-    /// On error nothing stays registered (another app may own the combination).
-    pub fn set(&mut self, binding: Option<&str>) -> Result<(), String> {
-        if let Some(old) = self.registered.take() {
+    /// Replaces every hotkey. A binding looks like `Ctrl+Shift+P`; None skips that command.
+    /// A binding that fails (another app may own the combination) stays unregistered and the
+    /// others still register; the first error is returned.
+    pub fn set(&mut self, bindings: &[(Option<&str>, Command)]) -> Result<(), String> {
+        for old in self.registered.drain(..) {
             let _ = self.manager.unregister(old);
         }
-        let Some(binding) = binding else {
-            return Ok(());
-        };
-        let hotkey: HotKey = binding.parse().map_err(|e| format!("{e}"))?;
-        self.manager.register(hotkey).map_err(|e| e.to_string())?;
-        self.registered = Some(hotkey);
-        Ok(())
+        let mut map = self.commands.lock().map_err(|e| e.to_string())?;
+        map.clear();
+        let mut first_error = None;
+        for (binding, command) in bindings {
+            let Some(binding) = binding else { continue };
+            let result = binding
+                .parse::<HotKey>()
+                .map_err(|e| format!("{e}"))
+                .and_then(|hotkey| {
+                    self.manager.register(hotkey).map_err(|e| e.to_string())?;
+                    Ok(hotkey)
+                });
+            match result {
+                Ok(hotkey) => {
+                    map.insert(hotkey.id(), *command);
+                    self.registered.push(hotkey);
+                }
+                Err(e) => {
+                    first_error.get_or_insert(e);
+                }
+            }
+        }
+        first_error.map_or(Ok(()), Err)
     }
 }
 
