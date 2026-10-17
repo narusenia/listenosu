@@ -88,6 +88,8 @@ pub struct App {
     playlists_dirty: bool,
 
     backdrop: Backdrop,
+    /// The decoded image behind `backdrop`, kept to rebuild it when the blur setting changes.
+    backdrop_source: Option<Arc<Decoded>>,
     loader: BackdropLoader,
     smoother: SpectrumSmoother,
     seek_hold: Option<(f32, Instant)>,
@@ -151,6 +153,7 @@ impl App {
             queue_dirty: true,
             playlists_dirty: true,
             backdrop: Backdrop::default(),
+            backdrop_source: None,
             loader: BackdropLoader::new(cc.egui_ctx.clone()),
             smoother: SpectrumSmoother::default(),
             seek_hold: None,
@@ -170,6 +173,8 @@ impl App {
         app.sync_discord_client();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
+        app.theme.backdrop.blur = app.config.backdrop_blur;
+        app.theme.backdrop.dim = app.config.backdrop_dim;
         app.open_catalog();
         app
     }
@@ -366,6 +371,7 @@ impl App {
             None => {
                 self.loader.cancel();
                 self.backdrop.clear();
+                self.backdrop_source = None;
             }
         }
         if let (Some(media), Some(view), Some(catalog)) =
@@ -383,7 +389,8 @@ impl App {
         self.update_playing_row();
     }
 
-    fn set_backdrop(&mut self, ctx: &egui::Context, decoded: &Decoded) {
+    fn set_backdrop(&mut self, ctx: &egui::Context, decoded: &Arc<Decoded>) {
+        self.backdrop_source = Some(decoded.clone());
         self.backdrop.set_image(
             ctx,
             &decoded.rgba,
@@ -767,7 +774,15 @@ impl App {
 
     fn apply_settings(&mut self, ctx: &egui::Context) {
         let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
+        let blur_before = self.config.backdrop_blur;
         self.config.apply_settings(&self.settings);
+        self.theme.backdrop.blur = self.config.backdrop_blur;
+        self.theme.backdrop.dim = self.config.backdrop_dim;
+        if blur_before != self.config.backdrop_blur
+            && let Some(source) = self.backdrop_source.clone()
+        {
+            self.set_backdrop(ctx, &source);
+        }
         if let Some(player) = &mut self.player {
             player.set_crossfade(Duration::from_secs_f32(self.config.crossfade_secs));
         }

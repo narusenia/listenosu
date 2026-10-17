@@ -86,6 +86,8 @@ impl Gallery {
                 tray_on_close: true,
                 mini_on_top: false,
                 spectrum: true,
+                backdrop_blur: Theme::lazer().backdrop.blur,
+                backdrop_dim: Theme::lazer().backdrop.dim,
                 hotkeys: false,
                 hotkey_play_pause: None,
                 discord: false,

@@ -20,6 +20,9 @@ pub struct SettingsState {
     pub tray_on_close: bool,
     pub mini_on_top: bool,
     pub spectrum: bool,
+    /// Backdrop blur strength and darkening (0.0 to 1.0); the same values as `Theme::backdrop`.
+    pub backdrop_blur: f32,
+    pub backdrop_dim: f32,
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
     pub discord: bool,
@@ -72,6 +75,12 @@ pub fn settings_screen(
                 );
                 setting_row(ui, theme, "Audio spectrum", |ui| {
                     toggle(ui, theme, &mut state.spectrum);
+                });
+                setting_row(ui, theme, "Backdrop blur", |ui| {
+                    ui.add(egui::Slider::new(&mut state.backdrop_blur, 4.0..=48.0).step_by(1.0));
+                });
+                setting_row(ui, theme, "Backdrop dimming", |ui| {
+                    ui.add(egui::Slider::new(&mut state.backdrop_dim, 0.0..=1.0).step_by(0.05));
                 });
 
                 section(ui, theme, "Playback");
