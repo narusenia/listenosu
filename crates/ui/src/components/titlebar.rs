@@ -22,6 +22,7 @@ pub fn titlebar(
     title: &str,
     can_maximize: bool,
     show_pages: bool,
+    now_playing: Option<&str>,
 ) -> TitlebarEvent {
     let mut event = TitlebarEvent::default();
     let height = theme.shape.titlebar_height;
@@ -39,13 +40,30 @@ pub fn titlebar(
             if can_maximize && drag.double_clicked() {
                 event.toggle_maximize = true;
             }
-            ui.painter().text(
+            let title_rect = ui.painter().text(
                 pos2(bar.left() + theme.shape.padding, bar.center().y),
                 egui::Align2::LEFT_CENTER,
                 title,
                 egui::FontId::proportional(theme.text.small),
                 c.text_dim,
             );
+            if let Some(song) = now_playing {
+                // Keep clear of the buttons on the right and the title on the left, equally on both sides.
+                let buttons = 1 + usize::from(can_maximize) + 1 + 2 * usize::from(show_pages);
+                let side = (height * 1.4 * buttons as f32)
+                    .max(title_rect.right() - bar.left() + theme.shape.padding);
+                let area = Rect::from_x_y_ranges(
+                    (bar.left() + side)..=(bar.right() - side),
+                    bar.y_range(),
+                );
+                ui.painter().with_clip_rect(area).text(
+                    bar.center(),
+                    egui::Align2::CENTER_CENTER,
+                    song,
+                    egui::FontId::proportional(theme.text.small),
+                    c.text,
+                );
+            }
             ui.scope_builder(
                 egui::UiBuilder::new()
                     .max_rect(bar)

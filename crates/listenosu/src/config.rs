@@ -36,6 +36,8 @@ pub struct Config {
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
     pub discord: bool,
+    /// Application ID from the Discord Developer Portal; written by hand in settings.json.
+    pub discord_app_id: String,
     pub check_updates: bool,
 
     /// Whether the queue / playlists panel is expanded.
@@ -66,6 +68,7 @@ impl Default for Config {
             hotkeys: false,
             hotkey_play_pause: None,
             discord: false,
+            discord_app_id: String::new(),
             check_updates: true,
             volume: 0.7,
             shuffle: false,
@@ -123,6 +126,7 @@ impl Config {
             hotkeys: self.hotkeys,
             hotkey_play_pause: self.hotkey_play_pause.clone(),
             discord: self.discord,
+            discord_app_id: self.discord_app_id.clone(),
             check_updates: self.check_updates,
             capturing: false,
         }
@@ -140,6 +144,7 @@ impl Config {
         self.hotkeys = s.hotkeys;
         self.hotkey_play_pause = s.hotkey_play_pause.clone();
         self.discord = s.discord;
+        self.discord_app_id = s.discord_app_id.clone();
         self.check_updates = s.check_updates;
     }
 }

@@ -1,10 +1,17 @@
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
 use eframe::egui;
 use library::Song;
 use library::playlist::Playlists;
 use library::store::AppDirs;
+use platform::discord::{Listening, Presence};
+use platform::hotkey::Hotkey;
+use platform::media::{Command, Media, Track};
+use platform::tray::{Tray, TrayEvent};
 use player::{Event, Player, Repeat, Status};
 use ui::Theme;
 use ui::backdrop::Backdrop;
@@ -85,6 +92,22 @@ pub struct App {
     smoother: SpectrumSmoother,
     seek_hold: Option<(f32, Instant)>,
     settle: u8,
+    /// None when the OS refuses media controls; the app works without them.
+    media: Option<Media>,
+    /// None when the tray cannot be created; closing then quits instead of hiding.
+    tray: Option<Tray>,
+    tray_commands: Receiver<Command>,
+    /// Set by the tray's Quit so the close request that follows is not turned into a hide.
+    quitting: Arc<AtomicBool>,
+    /// The window is hidden in the tray; the spectrum is not analyzed meanwhile.
+    hidden: Arc<AtomicBool>,
+    /// None when the OS refuses a global hotkey manager.
+    hotkey: Option<Hotkey>,
+    /// The binding `hotkey` has registered, to tell when the settings changed it.
+    hotkey_active: Option<String>,
+    /// Created when Discord is on and an Application ID is set.
+    discord: Option<Presence>,
+    discord_app_id: String,
 }
 
 impl App {
@@ -95,6 +118,8 @@ impl App {
             .map(|d| Playlists::load(&d.playlists_file()))
             .unwrap_or_default();
         let side_open = config.side_open;
+        let (tray_tx, tray_commands) = channel();
+        let (quitting, hidden) = (Arc::default(), Arc::default());
         let mut app = Self {
             theme: Theme::lazer(),
             theme_applied: false,
@@ -130,7 +155,20 @@ impl App {
             smoother: SpectrumSmoother::default(),
             seek_hold: None,
             settle: SETTLE_FRAMES,
+            media: open_media(cc),
+            tray: None,
+            tray_commands,
+            quitting,
+            hidden,
+            hotkey: None,
+            hotkey_active: None,
+            discord: None,
+            discord_app_id: String::new(),
         };
+        app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
+        app.sync_hotkey();
+        app.sync_discord_client();
+        app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
         app.open_catalog();
         app
@@ -259,6 +297,7 @@ impl App {
         }
         let events = self.player.as_mut().map(Player::tick).unwrap_or_default();
         self.handle_player_events(ctx, events);
+        self.sync_media();
         if let Some(decoded) = self.loader.poll() {
             self.set_backdrop(ctx, &decoded);
         }
@@ -287,6 +326,9 @@ impl App {
                 (Event::Finished, _) => {
                     self.now_playing = None;
                     self.now_view = None;
+                    if let Some(media) = &mut self.media {
+                        media.set_track(None);
+                    }
                     self.playing_row = None;
                 }
                 _ => {}
@@ -325,6 +367,17 @@ impl App {
                 self.loader.cancel();
                 self.backdrop.clear();
             }
+        }
+        if let (Some(media), Some(view), Some(catalog)) =
+            (&mut self.media, &self.now_view, &self.catalog)
+        {
+            let cover = song.background_path(&catalog.data_dir);
+            media.set_track(Some(&Track {
+                title: &view.title,
+                artist: &view.artist,
+                cover: cover.as_deref(),
+                length_secs: f64::from(song.length_secs()),
+            }));
         }
         self.now_playing = Some(song);
         self.update_playing_row();
@@ -367,8 +420,9 @@ impl App {
 
     /// Smoothed bar levels. Nothing is analyzed while the window is minimized or the setting is off.
     fn spectrum(&mut self, ctx: &egui::Context, dt: f32) -> Vec<f32> {
-        let visible =
-            self.config.spectrum && !ctx.input(|i| i.viewport().minimized.unwrap_or(false));
+        let visible = self.config.spectrum
+            && !self.hidden.load(Ordering::SeqCst)
+            && !ctx.input(|i| i.viewport().minimized.unwrap_or(false));
         let bars = self.theme.spectrum.bars;
         let raw = match &mut self.player {
             Some(player) => fit(&player.spectrum(visible), bars),
@@ -437,6 +491,66 @@ impl App {
         }
         if event.prev {
             self.with_player(Player::previous);
+        }
+    }
+
+    /// Applies media keys, tray menu commands and the OS media overlay, then reports the state back.
+    fn sync_media(&mut self) {
+        let mut commands: Vec<Command> = self.tray_commands.try_iter().collect();
+        commands.extend(self.media.as_ref().map(Media::poll).unwrap_or_default());
+        let mut status = self.player.as_ref().map(Player::status).unwrap_or_default();
+        for command in commands {
+            let playing = status.index.is_some() && !status.paused;
+            let event = match command {
+                Command::Play if !playing => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Pause | Command::Stop if playing => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Toggle => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Next => PlaybarEvent {
+                    next: true,
+                    ..Default::default()
+                },
+                Command::Previous => PlaybarEvent {
+                    prev: true,
+                    ..Default::default()
+                },
+                Command::SeekTo(secs) => PlaybarEvent {
+                    seek_secs: Some(secs as f32),
+                    ..Default::default()
+                },
+                Command::SeekBy(by) => PlaybarEvent {
+                    seek_secs: Some((status.position + by).clamp(0.0, status.length) as f32),
+                    ..Default::default()
+                },
+                _ => continue,
+            };
+            self.apply_playbar(event, status);
+            status = self.player.as_ref().map(Player::status).unwrap_or_default();
+        }
+        let playing = status.index.map(|_| !status.paused);
+        if let Some(discord) = &mut self.discord {
+            let listening = self
+                .now_view
+                .as_ref()
+                .zip(playing)
+                .map(|(view, playing)| Listening {
+                    title: &view.title,
+                    artist: &view.artist,
+                    playing,
+                    position_secs: status.position,
+                });
+            discord.update(listening.as_ref());
+        }
+        if let Some(media) = &mut self.media {
+            media.set_state(playing, status.position);
         }
     }
 
@@ -671,8 +785,44 @@ impl App {
                     .map(|c| song_view(&song, c.is_missing(&song), self.config.romanized));
             }
         }
+        self.sync_hotkey();
+        self.sync_discord_client();
         self.apply_window_level(ctx);
         self.touch_config();
+    }
+
+    /// Creates or drops the Discord presence when the setting or the Application ID changed.
+    fn sync_discord_client(&mut self) {
+        let id = self.config.discord_app_id.trim();
+        let wanted = if self.config.discord { id } else { "" };
+        if wanted == self.discord_app_id {
+            return;
+        }
+        self.discord_app_id = wanted.to_owned();
+        // Dropping the old one clears the presence.
+        self.discord = (!wanted.is_empty()).then(|| Presence::new(wanted));
+    }
+
+    /// Registers the configured hotkey when it is on, and drops it otherwise.
+    fn sync_hotkey(&mut self) {
+        let wanted = self
+            .config
+            .hotkeys
+            .then(|| self.config.hotkey_play_pause.clone())
+            .flatten();
+        if wanted == self.hotkey_active {
+            return;
+        }
+        let Some(hotkey) = &mut self.hotkey else {
+            return;
+        };
+        // Remember the attempt even if it fails, so a taken combination is reported once.
+        self.hotkey_active = wanted.clone();
+        if let Err(error) = hotkey.set(wanted.as_deref()) {
+            let text = format!("Could not register the hotkey: {error}");
+            self.toasts
+                .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
+        }
     }
 
     fn apply_window_level(&self, ctx: &egui::Context) {
@@ -723,7 +873,9 @@ impl App {
         };
         ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min.into()));
         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(
-            saved.map_or(default_size, |g| g.size).into(),
+            saved
+                .map_or(default_size, |g| crate::at_least(g.size, min))
+                .into(),
         ));
         if let Some(g) = saved {
             ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(g.position.into()));
@@ -917,14 +1069,27 @@ impl eframe::App for App {
 
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_config(true);
+            if self.config.tray_on_close
+                && self.tray.is_some()
+                && !self.quitting.load(Ordering::SeqCst)
+            {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                self.hidden.store(true, Ordering::SeqCst);
+            }
         }
 
+        let song = self
+            .now_view
+            .as_ref()
+            .map(|v| format!("{} - {}", v.title, v.artist));
         let bar = titlebar(
             ui,
             &self.theme,
             "listenosu!",
             !self.mini,
             self.catalog.is_some() && !self.mini,
+            song.as_deref(),
         );
         self.apply_titlebar(&ctx, bar);
         if !self.mini {
@@ -950,6 +1115,52 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {
+    let ctx = ctx.clone();
+    Hotkey::new(move || {
+        let _ = commands.send(Command::Toggle);
+        ctx.request_repaint();
+    })
+    .ok()
+}
+
+fn open_tray(
+    ctx: &egui::Context,
+    commands: Sender<Command>,
+    quitting: &Arc<AtomicBool>,
+    hidden: &Arc<AtomicBool>,
+) -> Option<Tray> {
+    let (ctx, quitting, hidden) = (ctx.clone(), quitting.clone(), hidden.clone());
+    Tray::new(move |event| {
+        match event {
+            TrayEvent::Show => {
+                hidden.store(false, Ordering::SeqCst);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+            }
+            TrayEvent::Quit => {
+                quitting.store(true, Ordering::SeqCst);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+            TrayEvent::Command(command) => {
+                let _ = commands.send(command);
+            }
+        }
+        ctx.request_repaint();
+    })
+    .ok()
+}
+
+fn open_media(cc: &eframe::CreationContext<'_>) -> Option<Media> {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let hwnd = match cc.window_handle().ok()?.as_raw() {
+        RawWindowHandle::Win32(handle) => Some(handle.hwnd.get() as *mut std::ffi::c_void),
+        _ => None,
+    };
+    Media::new(hwnd).ok()
 }
 
 /// Spreads or averages `levels` over `n` bars.

@@ -23,6 +23,8 @@ pub struct SettingsState {
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
     pub discord: bool,
+    /// Application ID from the Discord Developer Portal; presence stays off while it is empty.
+    pub discord_app_id: String,
     pub check_updates: bool,
     /// The play / pause hotkey button is waiting for a key press.
     pub capturing: bool,
@@ -108,6 +110,15 @@ pub fn settings_screen(
                 });
                 setting_row(ui, theme, "Discord Rich Presence", |ui| {
                     toggle(ui, theme, &mut state.discord);
+                });
+                ui.add_enabled_ui(state.discord, |ui| {
+                    setting_row(ui, theme, "Discord Application ID", |ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(&mut state.discord_app_id)
+                                .desired_width(theme.shape.list_width / 2.0)
+                                .hint_text("Application ID"),
+                        );
+                    });
                 });
 
                 section(ui, theme, "Updates");

@@ -89,6 +89,7 @@ impl Gallery {
                 hotkeys: false,
                 hotkey_play_pause: None,
                 discord: false,
+                discord_app_id: String::new(),
                 check_updates: true,
                 capturing: false,
             },
