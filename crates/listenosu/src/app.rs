@@ -1296,6 +1296,20 @@ impl eframe::App for App {
         {
             self.page = Page::Main;
         }
+        // Space toggles playback while the window has focus. It stays a space in a text field, and
+        // is consumed here so a focused button does not also activate on it.
+        if self.catalog.is_some()
+            && self.settings.capturing.is_none()
+            && !ctx.egui_wants_keyboard_input()
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space))
+        {
+            let status = self.player.as_ref().map(Player::status).unwrap_or_default();
+            let event = PlaybarEvent {
+                toggle_play: true,
+                ..Default::default()
+            };
+            self.apply_playbar(event, status);
+        }
         if !self.mini {
             resize_handles(&ctx, &self.theme);
         }
