@@ -114,6 +114,10 @@ save_playlists_failed = "プレイリストを保存できませんでした。"
 hotkey_failed = "ホットキーを登録できませんでした：{error}"
 folder_not_lazer = "そのフォルダに osu!lazer のライブラリはありません。"
 
+[update]
+available = "listenosu! の新しいバージョンがあります：{version}"
+open = "開く"
+
 [problem]
 helper_missing = "ライブラリのヘルパーが見つかりません。前回のライブラリを表示しています。"
 read_failed = "osu!lazer のライブラリを読めませんでした（{message}）。前回のライブラリを表示しています。"

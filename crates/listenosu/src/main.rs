@@ -4,6 +4,7 @@ mod catalog;
 mod config;
 mod listing;
 mod side;
+mod update;
 
 use eframe::egui;
 use library::store::AppDirs;

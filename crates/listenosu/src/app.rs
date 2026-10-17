@@ -35,6 +35,7 @@ use crate::catalog::Catalog;
 use crate::config::{Config, Geometry, LastSession};
 use crate::listing::{self, song_view};
 use crate::side::{Action, Side, SideInput};
+use crate::update::{self, Release};
 
 pub const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
 
@@ -114,10 +115,15 @@ pub struct App {
     discord_app_id: String,
     /// Waiting for the folder dialog, which runs on its own thread so playback keeps going.
     folder_pick: Option<Receiver<Option<PathBuf>>>,
+    /// The startup update check, until it answers.
+    update_check: Option<Receiver<Release>>,
+    /// A newer release, shown as a banner until dismissed.
+    update: Option<Release>,
 }
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, dirs: Option<AppDirs>, config: Config) -> Self {
+        let check_updates = config.check_updates;
         ui::fonts::install(&cc.egui_ctx);
         let playlists = dirs
             .as_ref()
@@ -173,6 +179,9 @@ impl App {
             discord: None,
             discord_app_id: String::new(),
             folder_pick: None,
+            update_check: check_updates
+                .then(|| update::spawn_check(env!("CARGO_PKG_VERSION"), cc.egui_ctx.clone())),
+            update: None,
         };
         app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
         app.sync_hotkey();
@@ -608,6 +617,12 @@ impl App {
     fn apply_side(&mut self, actions: Vec<Action>) {
         for action in actions {
             match action {
+                Action::OpenUpdate => {
+                    if let Some(release) = &self.update {
+                        open_url(&release.url);
+                    }
+                }
+                Action::DismissUpdate => self.update = None,
                 Action::DismissBanner => {
                     self.dismissed_problem = self.catalog.as_ref().and_then(|c| c.problem.clone());
                 }
@@ -1142,10 +1157,15 @@ impl App {
             .as_ref()
             .and_then(|c| c.problem.as_deref())
             .filter(|text| self.dismissed_problem.as_deref() != Some(text));
+        let update_text = self
+            .update
+            .as_ref()
+            .map(|r| tr("update.available", &[("version", &r.tag)]));
         let side_input = SideInput {
             queue_current: self.player.as_ref().and_then(|p| p.queue().current()),
             can_add: self.main.selected.is_some(),
             problem,
+            update: update_text.as_deref(),
         };
         let playlist_names: Vec<String> = self
             .playlists
@@ -1206,6 +1226,10 @@ impl eframe::App for App {
         }
         self.tick(&ctx);
         self.poll_folder_pick();
+        if let Some(release) = self.update_check.as_ref().and_then(|rx| rx.try_recv().ok()) {
+            self.update = Some(release);
+            self.update_check = None;
+        }
         self.track_window(&ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) {
@@ -1284,6 +1308,18 @@ fn reveal_in_file_manager(path: &Path) {
     };
     // Failing to open a file manager is not worth interrupting playback for.
     let _ = command.spawn();
+}
+
+/// Opens a web page in the default browser.
+fn open_url(url: &str) {
+    let program = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let _ = std::process::Command::new(program).arg(url).spawn();
 }
 
 fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {

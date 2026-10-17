@@ -159,8 +159,8 @@ listenosu/
 ## Phase 7: 多言語化・設定画面・仕上げ
 
 - [x] 翻訳ファイルの仕組みと英語・日本語の文言（`ui::i18n`、`crates/ui/locales/{en,ja}.toml`）
-- [ ] 設定画面（データフォルダ、表示言語、原語/ローマ字表示、クロスフェード、トレイ、ホットキー、Discord、更新確認）
-- [ ] 更新の確認（GitHub Releases の API）と通知
+- [x] 設定画面（データフォルダ、表示言語、原語/ローマ字表示、クロスフェード、トレイ、ホットキー、Discord、更新確認）
+- [x] 更新の確認（GitHub Releases の API）と通知
 - [x] About と README（非公式であることの表記、ライセンス、同梱物のライセンス）
 - [x] osu! のブランド規約で名称を使ってよいか確認する
 
@@ -227,3 +227,4 @@ listenosu/
 - 2026-10-17: スペクトラムの詳細設定を足した（設定画面の Display。本数 16〜128、落ちる速さ 0.4〜4.0（1 秒あたりに振幅の範囲の何割落ちるか）、高さ 24〜160。Audio spectrum が OFF のときは無効）。値は `settings.json` の `spectrum_bars` / `spectrum_decay` / `spectrum_height` に保存し、既定は `Theme::lazer()`。ミニの高さ・色・隙間は設定にしていない。`App::apply_theme_settings` が背景とスペクトラムの設定を `Theme` に反映する。本数は低域から高域への 64 帯域を `fit` で伸縮して合わせる（解析の帯域数は 64 のまま）
 - 2026-10-17: 設定画面の行やプレイリスト見出しで、ラベルがボタン・選択ボックスより上にずれる不具合を直した（以前の記録の未修正分）。原因は、egui が先に置いたウィジェットを、後から高くなる行に合わせて再センタリングしないこと。`controls::fix_row_height` に切り出し、`setting_row`（トグルの高さも考慮）、プレイリストの見出し行、`screens::header` で行の高さを先に固定する。Language の選択ボックスは、`dropdown` が行の中でさらに `horizontal` を入れ子にして高さが増えていたため、入れ子にしない `dropdown_inline`（ラベルが空なら何も置かない）に変え、使われなくなった `dropdown` は削除した。ギャラリーで設定画面の 2 行とプレイリストの見出し行を撮って確認済み
 - 2026-10-17: Phase 7 の翻訳の仕組みを実装した（`feat/i18n`）。文言は `crates/ui/locales/en.toml` と `ja.toml`（TOML、`include_str!` で埋め込み。依存は増やしていない）に置き、`ui::i18n::t(key)` / `tr(key, &[(name, value)])` で引く。キーは表の階層をドットでつなぐ（`settings.language`）。日本語に無いキーは英語、英語にも無ければキーを返す。テストで、英語の全キーが日本語にあることとプレースホルダの数の一致を確認する。設定の Language は System / English / 日本語。System は Windows では `GetUserDefaultLocaleName`（kernel32 を直接宣言）、ほかは `LC_ALL` / `LC_MESSAGES` / `LANG` で判定する。切り替えは即時に反映し、並べ替え・表示の選択肢も作り直す。**未対応**: 切り替え前から出ている警告バナーとトーストは元の言語のまま。ギャラリーのモックデータと `BPM` は訳していない。**ブランド規約**: osu! の Brand identity guidelines は「All use does not require approval」で、第三者のアプリ名に osu! を含めてよいかの明示は無い（ロゴは公式ファイルを無改変で使う規定）。ロゴは同梱しないので、承認は不要と判断した。名称の扱いに迷う場合は ppy に問い合わせる
+- 2026-10-17: 設定画面の仕上げ（`feat/settings-polish`）。(1) ホットキーを 3 つにした（再生/一時停止、次へ、前へ。設定 `hotkey_next` / `hotkey_previous`）。`platform::hotkey::Hotkey::set` は `(binding, Command)` の一覧を受け、全部を登録し直す。登録できない組み合わせがあっても残りは登録し、最初のエラーをトーストで知らせる。キー入力待ちの行は `SettingsState::capturing: Option<usize>`。(2) フォルダ選択を `rfd` 0.17（ユーザーの承認済み）で実装した。ダイアログは別スレッドで開き、再生は止まらない。選んだフォルダに lazer のライブラリが無いときは、設定を変えずにトーストで知らせる。(3) 更新確認を実装した（`ureq` 3、承認済み。`update.rs`）。設定の「起動時に更新を確認する」が ON のとき、起動時に 1 回だけ GitHub の `releases/latest` を別スレッドで問い合わせ、新しいバージョンならメイン画面の上に Info のバナー（「開く」でブラウザ、閉じる）を出す。失敗（オフライン・リリースなし・レート制限）は黙って無視する。バージョンは数字で比較し、プレリリースの接尾辞は無視する。送るのは IP と User-Agent（`listenosu/<version>`）だけ。**未確認**: 実際のリリースに対する動作（リポジトリにリリースが無い）、フォルダ選択とホットキー 3 つの実機操作

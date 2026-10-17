@@ -114,6 +114,10 @@ save_playlists_failed = "Could not save the playlists."
 hotkey_failed = "Could not register the hotkey: {error}"
 folder_not_lazer = "That folder does not hold an osu!lazer library."
 
+[update]
+available = "A new version of listenosu! is available: {version}"
+open = "Open"
+
 [problem]
 helper_missing = "The library helper was not found. Showing the last known library."
 read_failed = "Could not read osu!lazer's library ({message}). Showing the last known library."
