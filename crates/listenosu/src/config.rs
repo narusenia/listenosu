@@ -41,6 +41,8 @@ pub struct Config {
     pub backdrop_dim: f32,
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
+    pub hotkey_next: Option<String>,
+    pub hotkey_previous: Option<String>,
     pub discord: bool,
     /// Application ID from the Discord Developer Portal; written by hand in settings.json.
     pub discord_app_id: String,
@@ -81,6 +83,8 @@ impl Default for Config {
             backdrop_dim: Theme::lazer().backdrop.dim,
             hotkeys: false,
             hotkey_play_pause: None,
+            hotkey_next: None,
+            hotkey_previous: None,
             discord: false,
             discord_app_id: String::new(),
             check_updates: true,
@@ -144,10 +148,12 @@ impl Config {
             backdrop_dim: self.backdrop_dim,
             hotkeys: self.hotkeys,
             hotkey_play_pause: self.hotkey_play_pause.clone(),
+            hotkey_next: self.hotkey_next.clone(),
+            hotkey_previous: self.hotkey_previous.clone(),
             discord: self.discord,
             discord_app_id: self.discord_app_id.clone(),
             check_updates: self.check_updates,
-            capturing: false,
+            capturing: None,
         }
     }
 
@@ -167,6 +173,8 @@ impl Config {
         self.backdrop_dim = s.backdrop_dim;
         self.hotkeys = s.hotkeys;
         self.hotkey_play_pause = s.hotkey_play_pause.clone();
+        self.hotkey_next = s.hotkey_next.clone();
+        self.hotkey_previous = s.hotkey_previous.clone();
         self.discord = s.discord;
         self.discord_app_id = s.discord_app_id.clone();
         self.check_updates = s.check_updates;

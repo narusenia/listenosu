@@ -96,6 +96,8 @@ mini_on_top = "ミニプレイヤーを常に最前面にする"
 integrations = "連携"
 hotkeys = "グローバルホットキー"
 hotkey_play_pause = "再生 / 一時停止のホットキー"
+hotkey_next = "次の曲のホットキー"
+hotkey_previous = "前の曲のホットキー"
 discord = "Discord Rich Presence"
 discord_app_id = "Discord の Application ID"
 application_id = "Application ID"
@@ -110,7 +112,11 @@ added_to = "{name} に追加しました"
 already_in = "{name} にはすでにあります"
 save_playlists_failed = "プレイリストを保存できませんでした。"
 hotkey_failed = "ホットキーを登録できませんでした：{error}"
-folder_unavailable = "フォルダ選択はまだ使えません。settings.json でフォルダを指定してください。"
+folder_not_lazer = "そのフォルダに osu!lazer のライブラリはありません。"
+
+[update]
+available = "listenosu! の新しいバージョンがあります：{version}"
+open = "開く"
 
 [problem]
 helper_missing = "ライブラリのヘルパーが見つかりません。前回のライブラリを表示しています。"

@@ -35,6 +35,7 @@ use crate::catalog::Catalog;
 use crate::config::{Config, Geometry, LastSession};
 use crate::listing::{self, song_view};
 use crate::side::{Action, Side, SideInput};
+use crate::update::{self, Release};
 
 pub const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
 
@@ -107,15 +108,22 @@ pub struct App {
     hidden: Arc<AtomicBool>,
     /// None when the OS refuses a global hotkey manager.
     hotkey: Option<Hotkey>,
-    /// The binding `hotkey` has registered, to tell when the settings changed it.
-    hotkey_active: Option<String>,
+    /// The bindings `hotkey` has registered, to tell when the settings changed them.
+    hotkey_active: [Option<String>; 3],
     /// Created when Discord is on and an Application ID is set.
     discord: Option<Presence>,
     discord_app_id: String,
+    /// Waiting for the folder dialog, which runs on its own thread so playback keeps going.
+    folder_pick: Option<Receiver<Option<PathBuf>>>,
+    /// The startup update check, until it answers.
+    update_check: Option<Receiver<Release>>,
+    /// A newer release, shown as a banner until dismissed.
+    update: Option<Release>,
 }
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, dirs: Option<AppDirs>, config: Config) -> Self {
+        let check_updates = config.check_updates;
         ui::fonts::install(&cc.egui_ctx);
         let playlists = dirs
             .as_ref()
@@ -167,9 +175,13 @@ impl App {
             quitting,
             hidden,
             hotkey: None,
-            hotkey_active: None,
+            hotkey_active: Default::default(),
             discord: None,
             discord_app_id: String::new(),
+            folder_pick: None,
+            update_check: check_updates
+                .then(|| update::spawn_check(env!("CARGO_PKG_VERSION"), cc.egui_ctx.clone())),
+            update: None,
         };
         app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
         app.sync_hotkey();
@@ -605,6 +617,12 @@ impl App {
     fn apply_side(&mut self, actions: Vec<Action>) {
         for action in actions {
             match action {
+                Action::OpenUpdate => {
+                    if let Some(release) = &self.update {
+                        open_url(&release.url);
+                    }
+                }
+                Action::DismissUpdate => self.update = None,
                 Action::DismissBanner => {
                     self.dismissed_problem = self.catalog.as_ref().and_then(|c| c.problem.clone());
                 }
@@ -861,11 +879,16 @@ impl App {
 
     /// Registers the configured hotkey when it is on, and drops it otherwise.
     fn sync_hotkey(&mut self) {
-        let wanted = self
-            .config
-            .hotkeys
-            .then(|| self.config.hotkey_play_pause.clone())
-            .flatten();
+        let config = &self.config;
+        let wanted = if config.hotkeys {
+            [
+                config.hotkey_play_pause.clone(),
+                config.hotkey_next.clone(),
+                config.hotkey_previous.clone(),
+            ]
+        } else {
+            Default::default()
+        };
         if wanted == self.hotkey_active {
             return;
         }
@@ -874,7 +897,13 @@ impl App {
         };
         // Remember the attempt even if it fails, so a taken combination is reported once.
         self.hotkey_active = wanted.clone();
-        if let Err(error) = hotkey.set(wanted.as_deref()) {
+        let [play_pause, next, previous] = &wanted;
+        let bindings = [
+            (play_pause.as_deref(), Command::Toggle),
+            (next.as_deref(), Command::Next),
+            (previous.as_deref(), Command::Previous),
+        ];
+        if let Err(error) = hotkey.set(&bindings) {
             let text = tr("toast.hotkey_failed", &[("error", &error.to_string())]);
             self.toasts
                 .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
@@ -1019,14 +1048,48 @@ impl App {
 
     // ---- pages ----------------------------------------------------------------------------
 
+    fn pick_folder(&mut self, ctx: &egui::Context) {
+        if self.folder_pick.is_some() {
+            return;
+        }
+        let (tx, rx) = channel();
+        let ctx = ctx.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(rfd::FileDialog::new().pick_folder());
+            ctx.request_repaint();
+        });
+        self.folder_pick = Some(rx);
+    }
+
+    /// Takes the dialog's answer once it arrives and switches to that folder if it holds a library.
+    fn poll_folder_pick(&mut self) {
+        let Some(rx) = &self.folder_pick else { return };
+        let picked = match rx.try_recv() {
+            Ok(picked) => picked,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => None,
+        };
+        self.folder_pick = None;
+        let Some(path) = picked else { return };
+        if library::discover::find_in(std::slice::from_ref(&path)).is_err() {
+            self.toasts.push(
+                NoticeKind::Warning,
+                t("toast.folder_not_lazer"),
+                self.theme.motion.toast_seconds,
+            );
+            return;
+        }
+        let folder = path.to_string_lossy().into_owned();
+        self.settings.data_folder = folder.clone();
+        self.config.data_folder = folder;
+        self.touch_config();
+        self.open_catalog();
+    }
+
     fn show_first_run(&mut self, ui: &mut egui::Ui) {
         let event = first_run_screen(ui, &self.theme, &self.searched);
         if event.choose_folder {
-            self.toasts.push(
-                NoticeKind::Info,
-                t("toast.folder_unavailable"),
-                self.theme.motion.toast_seconds,
-            );
+            self.pick_folder(ui.ctx());
         }
         if event.retry {
             self.open_catalog();
@@ -1042,11 +1105,7 @@ impl App {
                     let before = self.settings.clone();
                     let event = settings_screen(ui, &self.theme, &mut self.settings);
                     if event.choose_folder {
-                        self.toasts.push(
-                            NoticeKind::Info,
-                            t("toast.folder_unavailable"),
-                            self.theme.motion.toast_seconds,
-                        );
+                        self.pick_folder(ctx);
                     }
                     if before != self.settings {
                         self.apply_settings(ctx);
@@ -1098,10 +1157,15 @@ impl App {
             .as_ref()
             .and_then(|c| c.problem.as_deref())
             .filter(|text| self.dismissed_problem.as_deref() != Some(text));
+        let update_text = self
+            .update
+            .as_ref()
+            .map(|r| tr("update.available", &[("version", &r.tag)]));
         let side_input = SideInput {
             queue_current: self.player.as_ref().and_then(|p| p.queue().current()),
             can_add: self.main.selected.is_some(),
             problem,
+            update: update_text.as_deref(),
         };
         let playlist_names: Vec<String> = self
             .playlists
@@ -1161,6 +1225,11 @@ impl eframe::App for App {
             self.apply_window_level(&ctx);
         }
         self.tick(&ctx);
+        self.poll_folder_pick();
+        if let Some(release) = self.update_check.as_ref().and_then(|rx| rx.try_recv().ok()) {
+            self.update = Some(release);
+            self.update_check = None;
+        }
         self.track_window(&ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) {
@@ -1191,7 +1260,7 @@ impl eframe::App for App {
         self.apply_titlebar(&ctx, bar);
         // Esc leaves a page, unless the hotkey button is waiting for a key (Esc may be the key).
         if self.page != Page::Main
-            && !self.settings.capturing
+            && self.settings.capturing.is_none()
             && ctx.input(|i| i.key_pressed(egui::Key::Escape))
         {
             self.page = Page::Main;
@@ -1241,10 +1310,22 @@ fn reveal_in_file_manager(path: &Path) {
     let _ = command.spawn();
 }
 
+/// Opens a web page in the default browser.
+fn open_url(url: &str) {
+    let program = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let _ = std::process::Command::new(program).arg(url).spawn();
+}
+
 fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {
     let ctx = ctx.clone();
-    Hotkey::new(move || {
-        let _ = commands.send(Command::Toggle);
+    Hotkey::new(move |command| {
+        let _ = commands.send(command);
         ctx.request_repaint();
     })
     .ok()

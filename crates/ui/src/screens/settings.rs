@@ -38,12 +38,14 @@ pub struct SettingsState {
     pub backdrop_dim: f32,
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
+    pub hotkey_next: Option<String>,
+    pub hotkey_previous: Option<String>,
     pub discord: bool,
     /// Application ID from the Discord Developer Portal; presence stays off while it is empty.
     pub discord_app_id: String,
     pub check_updates: bool,
-    /// The play / pause hotkey button is waiting for a key press.
-    pub capturing: bool,
+    /// The hotkey row (0 = play / pause, 1 = next, 2 = previous) waiting for a key press.
+    pub capturing: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -125,16 +127,29 @@ pub fn settings_screen(
                     toggle(ui, theme, &mut state.hotkeys);
                 });
                 ui.add_enabled_ui(state.hotkeys, |ui| {
-                    setting_row(ui, theme, t("settings.hotkey_play_pause"), |ui| {
-                        let current = state.hotkey_play_pause.as_deref();
-                        match keybind(ui, theme, current, &mut state.capturing) {
-                            Some(KeyBindChange::Set(binding)) => {
-                                state.hotkey_play_pause = Some(binding)
+                    let rows = [
+                        (
+                            t("settings.hotkey_play_pause"),
+                            &mut state.hotkey_play_pause,
+                        ),
+                        (t("settings.hotkey_next"), &mut state.hotkey_next),
+                        (t("settings.hotkey_previous"), &mut state.hotkey_previous),
+                    ];
+                    for (slot, (label, binding)) in rows.into_iter().enumerate() {
+                        setting_row(ui, theme, label, |ui| {
+                            let mut capturing = state.capturing == Some(slot);
+                            match keybind(ui, theme, binding.as_deref(), &mut capturing) {
+                                Some(KeyBindChange::Set(set)) => *binding = Some(set),
+                                Some(KeyBindChange::Clear) => *binding = None,
+                                None => {}
                             }
-                            Some(KeyBindChange::Clear) => state.hotkey_play_pause = None,
-                            None => {}
-                        }
-                    });
+                            if capturing {
+                                state.capturing = Some(slot);
+                            } else if state.capturing == Some(slot) {
+                                state.capturing = None;
+                            }
+                        });
+                    }
                 });
                 setting_row(ui, theme, t("settings.discord"), |ui| {
                     toggle(ui, theme, &mut state.discord);

@@ -18,6 +18,8 @@ enum Tab {
 /// What the user asked for; the app applies it.
 pub enum Action {
     DismissBanner,
+    OpenUpdate,
+    DismissUpdate,
     /// The panel was opened or collapsed.
     SideOpen(bool),
     ClearQueue,
@@ -32,6 +34,8 @@ pub struct SideInput<'a> {
     /// A song is selected in the list, so it can be added somewhere.
     pub can_add: bool,
     pub problem: Option<&'a str>,
+    /// Text of the "update available" banner.
+    pub update: Option<&'a str>,
 }
 
 #[derive(Default)]
@@ -52,6 +56,15 @@ impl Side {
             && banner(ui, theme, NoticeKind::Warning, text, None).dismiss
         {
             actions.push(Action::DismissBanner);
+        }
+        if let Some(text) = input.update {
+            let event = banner(ui, theme, NoticeKind::Info, text, Some(t("update.open")));
+            if event.action {
+                actions.push(Action::OpenUpdate);
+            }
+            if event.dismiss {
+                actions.push(Action::DismissUpdate);
+            }
         }
         let was_open = self.open;
         ui.horizontal(|ui| {
