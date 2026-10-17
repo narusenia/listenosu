@@ -67,7 +67,7 @@ pub enum KeyBindChange {
 }
 
 /// Button that records the next key combination the user presses.
-/// Escape cancels, Backspace / Delete clears the binding.
+/// Escape cancels, Backspace / Delete or the Clear button clears the binding.
 pub fn keybind(
     ui: &mut egui::Ui,
     theme: &Theme,
@@ -91,17 +91,21 @@ pub fn keybind(
         return None;
     }
     if !*capturing {
+        if current.is_some() && ui.button(t("common.clear")).clicked() {
+            return Some(KeyBindChange::Clear);
+        }
         return None;
     }
 
     let pressed = ui.input(|input| {
         input.events.iter().find_map(|event| match event {
+            // A modifier pressed on its own is the start of a combination, not the key.
             Event::Key {
                 key,
                 pressed: true,
                 modifiers,
                 ..
-            } => Some((*key, *modifiers)),
+            } if !is_modifier(*key) => Some((*key, *modifiers)),
             _ => None,
         })
     });
@@ -120,6 +124,20 @@ pub fn keybind(
             KeyBindChange::Set(binding)
         }),
     }
+}
+
+fn is_modifier(key: Key) -> bool {
+    matches!(
+        key,
+        Key::ShiftLeft
+            | Key::ShiftRight
+            | Key::ControlLeft
+            | Key::ControlRight
+            | Key::AltLeft
+            | Key::AltRight
+            | Key::SuperLeft
+            | Key::SuperRight
+    )
 }
 
 /// Text like `Ctrl+Shift+P`. A global hotkey needs a modifier so it cannot hijack normal typing;
@@ -151,6 +169,12 @@ pub fn format_binding(modifiers: Modifiers, key: Key) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modifier_keys_alone_are_not_the_key_of_a_binding() {
+        assert!(is_modifier(Key::ControlLeft));
+        assert!(!is_modifier(Key::P));
+    }
 
     #[test]
     fn binding_needs_a_modifier_except_function_keys() {
