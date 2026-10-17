@@ -27,6 +27,8 @@ pub enum Icon {
     /// Keep the window on top (shown while it is).
     Pin,
     PinOff,
+    /// Show or hide the song list.
+    SongList,
 }
 
 impl Icon {
@@ -50,6 +52,7 @@ impl Icon {
             Icon::Maximize => '\u{e167}',
             Icon::Pin => '\u{e259}',
             Icon::PinOff => '\u{e2b6}',
+            Icon::SongList => '\u{e431}',
         }
     }
 }

@@ -129,6 +129,7 @@ impl App {
             settings: config.settings_state(),
             main: MainState {
                 sort: config.sort,
+                list_hidden: config.list_hidden,
                 ..Default::default()
             },
             mini: config.mini,
@@ -1123,6 +1124,10 @@ impl App {
         }
         if let Some((row, choice)) = event.list.menu {
             self.apply_song_menu(row, choice);
+        }
+        if self.main.list_hidden != self.config.list_hidden {
+            self.config.list_hidden = self.main.list_hidden;
+            self.touch_config();
         }
         if event.playbar.toggle_mini {
             self.set_mini(ctx, true);

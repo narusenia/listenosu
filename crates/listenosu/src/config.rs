@@ -45,6 +45,8 @@ pub struct Config {
 
     /// Whether the queue / playlists panel is expanded.
     pub side_open: bool,
+    /// Whether the song list on the main screen is collapsed.
+    pub list_hidden: bool,
     pub volume: f32,
     pub shuffle: bool,
     /// 0 off, 1 all, 2 one.
@@ -64,6 +66,7 @@ impl Default for Config {
             romanized: false,
             group_same: true,
             side_open: false,
+            list_hidden: false,
             crossfade_secs: 0.0,
             tray_on_close: true,
             mini_on_top: false,

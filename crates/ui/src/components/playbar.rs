@@ -17,9 +17,16 @@ pub struct PlaybarEvent {
     pub volume: Option<f32>,
     /// Switch to the mini player.
     pub toggle_mini: bool,
+    /// Show or hide the song list; the main screen flips `MainState::list_hidden` itself.
+    pub toggle_list: bool,
 }
 
-pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> PlaybarEvent {
+pub fn playbar(
+    ui: &mut egui::Ui,
+    theme: &Theme,
+    player: &PlayerView,
+    list_hidden: bool,
+) -> PlaybarEvent {
     let mut event = PlaybarEvent::default();
     let c = &theme.colors;
     let button_size = theme.shape.playbar_height * 0.6;
@@ -73,7 +80,7 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 let seek_width = ui.available_width()
                     - theme.volume_width()
                     - theme.time_width()
-                    - button_size
+                    - button_size * 2.0
                     - theme.shape.spacing * 4.0;
                 let progress = if player.length_secs > 0.0 {
                     player.position_secs / player.length_secs
@@ -87,6 +94,10 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 let (_, volume) = slider_bar(ui, theme, theme.volume_width(), player.volume);
                 event.volume = volume;
 
+                event.toggle_list =
+                    icon_toggle(ui, theme, Icon::SongList, button_size, !list_hidden)
+                        .on_hover_text("Song list")
+                        .clicked();
                 event.toggle_mini = icon_button(ui, theme, Icon::Mini, button_size)
                     .on_hover_text("Mini player")
                     .clicked();
