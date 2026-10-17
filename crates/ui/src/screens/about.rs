@@ -49,6 +49,7 @@ pub fn about_screen(
             ui.label("listenosu!: MIT License");
             ui.label("Nunito: SIL Open Font License 1.1");
             ui.label("Noto Sans JP: SIL Open Font License 1.1");
+            ui.label("Lucide icons: ISC License");
         });
     back
 }

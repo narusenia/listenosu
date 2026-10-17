@@ -1,7 +1,7 @@
 use egui::{Frame, Margin, RichText};
 
 use super::controls::slider_bar;
-use super::icons::{Icon, icon_button};
+use super::icons::{Icon, icon_button, icon_toggle};
 use crate::model::{PlayerView, Repeat, mmss};
 use crate::theme::Theme;
 
@@ -41,15 +41,24 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 event.toggle_play = icon_button(ui, theme, play, button_size).clicked();
                 event.next = icon_button(ui, theme, Icon::Next, button_size).clicked();
 
-                event.toggle_shuffle = ui.selectable_label(player.shuffle, "Shuffle").clicked();
-                let repeat_label = match player.repeat {
-                    Repeat::Off => "Repeat: off",
-                    Repeat::All => "Repeat: all",
-                    Repeat::One => "Repeat: one",
+                event.toggle_shuffle =
+                    icon_toggle(ui, theme, Icon::Shuffle, button_size, player.shuffle)
+                        .on_hover_text("Shuffle")
+                        .clicked();
+                let (repeat_icon, repeat_tip) = match player.repeat {
+                    Repeat::Off => (Icon::Repeat, "Repeat: off"),
+                    Repeat::All => (Icon::Repeat, "Repeat: all"),
+                    Repeat::One => (Icon::RepeatOne, "Repeat: one"),
                 };
-                event.cycle_repeat = ui
-                    .selectable_label(player.repeat != Repeat::Off, repeat_label)
-                    .clicked();
+                event.cycle_repeat = icon_toggle(
+                    ui,
+                    theme,
+                    repeat_icon,
+                    button_size,
+                    player.repeat != Repeat::Off,
+                )
+                .on_hover_text(repeat_tip)
+                .clicked();
 
                 let time =
                     |text: String| RichText::new(text).size(theme.text.small).color(c.text_dim);
@@ -64,7 +73,7 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 let seek_width = ui.available_width()
                     - theme.volume_width()
                     - theme.time_width()
-                    - theme.button_width()
+                    - button_size
                     - theme.shape.spacing * 4.0;
                 let progress = if player.length_secs > 0.0 {
                     player.position_secs / player.length_secs
@@ -78,11 +87,8 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 let (_, volume) = slider_bar(ui, theme, theme.volume_width(), player.volume);
                 event.volume = volume;
 
-                event.toggle_mini = ui
-                    .add_sized(
-                        [theme.button_width(), theme.text.body * 1.6],
-                        egui::Button::new("Mini"),
-                    )
+                event.toggle_mini = icon_button(ui, theme, Icon::Mini, button_size)
+                    .on_hover_text("Mini player")
                     .clicked();
             });
         });

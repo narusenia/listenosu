@@ -1,7 +1,9 @@
-use egui::{Color32, Pos2, Response, Sense, Shape, Stroke, Vec2, pos2, vec2};
+use egui::{Color32, FontId, Response, Sense, Vec2};
 
+use crate::fonts;
 use crate::theme::Theme;
 
+/// Lucide glyphs (the bundled icon font, version pinned in assets/fonts/lucide).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Icon {
     Play,
@@ -11,10 +13,74 @@ pub enum Icon {
     Up,
     Down,
     Close,
+    Shuffle,
+    Repeat,
+    RepeatOne,
+    /// Switch to the mini player.
+    Mini,
+    /// Switch back from the mini player.
+    Full,
+    Settings,
+    About,
+    Minimize,
+    Maximize,
+    /// Keep the window on top (shown while it is).
+    Pin,
+    PinOff,
 }
 
-/// Round icon button. Glyphs are painted as shapes so they do not depend on any font.
+impl Icon {
+    pub fn glyph(self) -> char {
+        match self {
+            Icon::Play => '\u{e13c}',
+            Icon::Pause => '\u{e12e}',
+            Icon::Prev => '\u{e15f}',
+            Icon::Next => '\u{e160}',
+            Icon::Up => '\u{e070}',
+            Icon::Down => '\u{e06d}',
+            Icon::Close => '\u{e1b2}',
+            Icon::Shuffle => '\u{e15e}',
+            Icon::Repeat => '\u{e146}',
+            Icon::RepeatOne => '\u{e1fd}',
+            Icon::Mini => '\u{e3af}',
+            Icon::Full => '\u{e113}',
+            Icon::Settings => '\u{e154}',
+            Icon::About => '\u{e0f9}',
+            Icon::Minimize => '\u{e11c}',
+            Icon::Maximize => '\u{e167}',
+            Icon::Pin => '\u{e259}',
+            Icon::PinOff => '\u{e2b6}',
+        }
+    }
+}
+
+/// How large a glyph is drawn inside a button of the given size.
+const GLYPH_RATIO: f32 = 0.55;
+
+/// Paints `icon` centered in `rect`.
+pub fn paint_icon(ui: &egui::Ui, icon: Icon, rect: egui::Rect, size: f32, color: Color32) {
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        icon.glyph(),
+        FontId::new(size, fonts::icon_family()),
+        color,
+    );
+}
+
+/// Round icon button.
 pub fn icon_button(ui: &mut egui::Ui, theme: &Theme, icon: Icon, size: f32) -> Response {
+    icon_toggle(ui, theme, icon, size, false)
+}
+
+/// Round icon button that is tinted with the accent color while `active` (shuffle, repeat).
+pub fn icon_toggle(
+    ui: &mut egui::Ui,
+    theme: &Theme,
+    icon: Icon,
+    size: f32,
+    active: bool,
+) -> Response {
     let (rect, response) = ui.allocate_exact_size(Vec2::splat(size), Sense::click());
     let hover = ui.ctx().animate_bool_with_time(
         response.id,
@@ -22,67 +88,12 @@ pub fn icon_button(ui: &mut egui::Ui, theme: &Theme, icon: Icon, size: f32) -> R
         theme.motion.hover_seconds,
     );
     let c = &theme.colors;
-    let painter = ui.painter();
-    painter.circle_filled(
+    ui.painter().circle_filled(
         rect.center(),
         size / 2.0,
         Color32::TRANSPARENT.lerp_to_gamma(c.surface_hover, hover),
     );
-
-    let half = size * 0.2;
-    let center = rect.center();
-    let color = c.text;
-    match icon {
-        Icon::Play => triangle(painter, center, half, 1.0, color),
-        Icon::Pause => {
-            for dx in [-half * 0.55, half * 0.55] {
-                let bar = egui::Rect::from_center_size(
-                    center + vec2(dx, 0.0),
-                    vec2(half * 0.7, half * 2.0),
-                );
-                painter.rect_filled(bar, theme.shape.spacing / 8.0, color);
-            }
-        }
-        Icon::Up | Icon::Down => {
-            let direction = if icon == Icon::Down { 1.0 } else { -1.0 };
-            let tip = |dx: f32, dy: f32| center + vec2(dx * half, direction * dy * half);
-            let points = vec![tip(-1.0, -0.5), tip(0.0, 0.5), tip(1.0, -0.5)];
-            painter.add(Shape::line(
-                points,
-                Stroke::new(theme.shape.spacing / 4.0, color),
-            ));
-        }
-        Icon::Close => {
-            let stroke = Stroke::new(theme.shape.spacing / 4.0, color);
-            let corner = |dx: f32, dy: f32| center + vec2(dx * half * 0.8, dy * half * 0.8);
-            painter.line_segment([corner(-1.0, -1.0), corner(1.0, 1.0)], stroke);
-            painter.line_segment([corner(-1.0, 1.0), corner(1.0, -1.0)], stroke);
-        }
-        Icon::Prev | Icon::Next => {
-            let direction = if icon == Icon::Next { 1.0 } else { -1.0 };
-            triangle(
-                painter,
-                center + vec2(-direction * half * 0.3, 0.0),
-                half,
-                direction,
-                color,
-            );
-            let bar = egui::Rect::from_center_size(
-                center + vec2(direction * half * 0.9, 0.0),
-                vec2(half * 0.4, half * 2.0),
-            );
-            painter.rect_filled(bar, theme.shape.spacing / 8.0, color);
-        }
-    }
+    let color = if active { c.accent } else { c.text };
+    paint_icon(ui, icon, rect, size * GLYPH_RATIO, color);
     response
-}
-
-/// Isosceles triangle pointing right (`direction` = 1.0) or left (-1.0).
-fn triangle(painter: &egui::Painter, center: Pos2, half: f32, direction: f32, color: Color32) {
-    let points = vec![
-        pos2(center.x + direction * half, center.y),
-        pos2(center.x - direction * half * 0.8, center.y - half),
-        pos2(center.x - direction * half * 0.8, center.y + half),
-    ];
-    painter.add(Shape::convex_polygon(points, color, Stroke::NONE));
 }

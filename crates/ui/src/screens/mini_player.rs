@@ -49,11 +49,8 @@ pub fn mini_player(
             // Full button first, right-aligned; the title takes whatever width is left.
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    event.expand = ui
-                        .add_sized(
-                            [theme.button_width(), theme.text.body * 1.6],
-                            egui::Button::new("Full"),
-                        )
+                    event.expand = icon_button(ui, theme, Icon::Full, theme.text.body * 1.6)
+                        .on_hover_text("Full window")
                         .clicked();
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         let Some(song) = song else { return };

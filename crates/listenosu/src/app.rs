@@ -861,6 +861,12 @@ impl App {
         if bar.close {
             ctx.send_viewport_cmd(Cmd::Close);
         }
+        if bar.toggle_pin {
+            self.config.mini_on_top = !self.config.mini_on_top;
+            self.settings.mini_on_top = self.config.mini_on_top;
+            self.apply_window_level(ctx);
+            self.touch_config();
+        }
         if bar.settings {
             self.toggle_page(Page::Settings);
         }
@@ -1115,6 +1121,7 @@ impl eframe::App for App {
             !self.mini,
             self.catalog.is_some() && !self.mini,
             song.as_deref(),
+            self.mini.then_some(self.config.mini_on_top),
         );
         self.apply_titlebar(&ctx, bar);
         // Esc leaves a page, unless the hotkey button is waiting for a key (Esc may be the key).
