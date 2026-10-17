@@ -862,11 +862,16 @@ impl App {
             ctx.send_viewport_cmd(Cmd::Close);
         }
         if bar.settings {
-            self.page = Page::Settings;
+            self.toggle_page(Page::Settings);
         }
         if bar.about {
-            self.page = Page::About;
+            self.toggle_page(Page::About);
         }
+    }
+
+    /// The title bar icons open their page, and close it when pressed again.
+    fn toggle_page(&mut self, page: Page) {
+        self.page = if self.page == page { Page::Main } else { page };
     }
 
     fn set_mini(&mut self, ctx: &egui::Context, mini: bool) {
@@ -1112,6 +1117,13 @@ impl eframe::App for App {
             song.as_deref(),
         );
         self.apply_titlebar(&ctx, bar);
+        // Esc leaves a page, unless the hotkey button is waiting for a key (Esc may be the key).
+        if self.page != Page::Main
+            && !self.settings.capturing
+            && ctx.input(|i| i.key_pressed(egui::Key::Escape))
+        {
+            self.page = Page::Main;
+        }
         if !self.mini {
             resize_handles(&ctx, &self.theme);
         }
