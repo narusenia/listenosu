@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icons/icon-256.png" alt="listenosu! icon" width="128"></p>
+
 # listenosu!
 
 [English](README.md) | 日本語
@@ -5,6 +7,12 @@
 osu!lazer のライブラリにある楽曲を、作業用 BGM として流し聴きするための音楽プレーヤーです。
 
 > **これは非公式のアプリです。** osu! および ppy Pty Ltd とは関係がなく、承認も受けていません。
+
+<p align="center">
+  <img src="docs/screenshots/readme-library.png" alt="曲一覧と再生中の曲" width="640"><br>
+  <img src="docs/screenshots/readme-now-playing.png" alt="ぼかした背景とオーディオスペクトラムの上に表示した再生中の曲" width="318">
+  <img src="docs/screenshots/readme-mini.png" alt="ミニプレイヤー" width="318">
+</p>
 
 ## ダウンロード
 

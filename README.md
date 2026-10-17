@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icons/icon-256.png" alt="listenosu! icon" width="128"></p>
+
 # listenosu!
 
 English | [日本語](README_ja.md)
@@ -5,6 +7,12 @@ English | [日本語](README_ja.md)
 A music player for listening to the songs in your osu!lazer library as background music.
 
 > **This is an unofficial app.** It is not affiliated with or endorsed by osu! or ppy Pty Ltd.
+
+<p align="center">
+  <img src="docs/screenshots/readme-library.png" alt="The song list next to the song that is playing" width="640"><br>
+  <img src="docs/screenshots/readme-now-playing.png" alt="The playing song over its blurred background, with the audio spectrum" width="318">
+  <img src="docs/screenshots/readme-mini.png" alt="The mini player" width="318">
+</p>
 
 ## Download
 
