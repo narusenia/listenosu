@@ -112,7 +112,7 @@ added_to = "{name} に追加しました"
 already_in = "{name} にはすでにあります"
 save_playlists_failed = "プレイリストを保存できませんでした。"
 hotkey_failed = "ホットキーを登録できませんでした：{error}"
-folder_unavailable = "フォルダ選択はまだ使えません。settings.json でフォルダを指定してください。"
+folder_not_lazer = "そのフォルダに osu!lazer のライブラリはありません。"
 
 [problem]
 helper_missing = "ライブラリのヘルパーが見つかりません。前回のライブラリを表示しています。"

@@ -12,6 +12,7 @@ library = { version = "0.1.0", path = "../library" }
 platform = { version = "0.1.0", path = "../platform" }
 player = { version = "0.1.0", path = "../player" }
 raw-window-handle = "0.6"
+rfd = "0.17"
 serde = { version = "1.0.229", features = ["derive"] }
 ui = { version = "0.1.0", path = "../ui" }
 

@@ -112,6 +112,8 @@ pub struct App {
     /// Created when Discord is on and an Application ID is set.
     discord: Option<Presence>,
     discord_app_id: String,
+    /// Waiting for the folder dialog, which runs on its own thread so playback keeps going.
+    folder_pick: Option<Receiver<Option<PathBuf>>>,
 }
 
 impl App {
@@ -170,6 +172,7 @@ impl App {
             hotkey_active: Default::default(),
             discord: None,
             discord_app_id: String::new(),
+            folder_pick: None,
         };
         app.hotkey = open_hotkey(&cc.egui_ctx, tray_tx.clone());
         app.sync_hotkey();
@@ -1030,14 +1033,48 @@ impl App {
 
     // ---- pages ----------------------------------------------------------------------------
 
+    fn pick_folder(&mut self, ctx: &egui::Context) {
+        if self.folder_pick.is_some() {
+            return;
+        }
+        let (tx, rx) = channel();
+        let ctx = ctx.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(rfd::FileDialog::new().pick_folder());
+            ctx.request_repaint();
+        });
+        self.folder_pick = Some(rx);
+    }
+
+    /// Takes the dialog's answer once it arrives and switches to that folder if it holds a library.
+    fn poll_folder_pick(&mut self) {
+        let Some(rx) = &self.folder_pick else { return };
+        let picked = match rx.try_recv() {
+            Ok(picked) => picked,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => None,
+        };
+        self.folder_pick = None;
+        let Some(path) = picked else { return };
+        if library::discover::find_in(std::slice::from_ref(&path)).is_err() {
+            self.toasts.push(
+                NoticeKind::Warning,
+                t("toast.folder_not_lazer"),
+                self.theme.motion.toast_seconds,
+            );
+            return;
+        }
+        let folder = path.to_string_lossy().into_owned();
+        self.settings.data_folder = folder.clone();
+        self.config.data_folder = folder;
+        self.touch_config();
+        self.open_catalog();
+    }
+
     fn show_first_run(&mut self, ui: &mut egui::Ui) {
         let event = first_run_screen(ui, &self.theme, &self.searched);
         if event.choose_folder {
-            self.toasts.push(
-                NoticeKind::Info,
-                t("toast.folder_unavailable"),
-                self.theme.motion.toast_seconds,
-            );
+            self.pick_folder(ui.ctx());
         }
         if event.retry {
             self.open_catalog();
@@ -1053,11 +1090,7 @@ impl App {
                     let before = self.settings.clone();
                     let event = settings_screen(ui, &self.theme, &mut self.settings);
                     if event.choose_folder {
-                        self.toasts.push(
-                            NoticeKind::Info,
-                            t("toast.folder_unavailable"),
-                            self.theme.motion.toast_seconds,
-                        );
+                        self.pick_folder(ctx);
                     }
                     if before != self.settings {
                         self.apply_settings(ctx);
@@ -1172,6 +1205,7 @@ impl eframe::App for App {
             self.apply_window_level(&ctx);
         }
         self.tick(&ctx);
+        self.poll_folder_pick();
         self.track_window(&ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) {
