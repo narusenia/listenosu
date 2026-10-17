@@ -91,6 +91,21 @@ impl<T> Queue<T> {
         self.order.push(self.items.len() - 1);
     }
 
+    /// Inserts right after the current track, so it plays next. Without a current track it is appended.
+    pub fn push_next(&mut self, item: T) {
+        let Some(cursor) = self.cursor else {
+            return self.push(item);
+        };
+        if self.shuffle {
+            self.items.push(item);
+            self.order.insert(cursor + 1, self.items.len() - 1);
+        } else {
+            // Unshuffled, the order is the item order, so the item goes into the list itself.
+            self.items.insert(cursor + 1, item);
+            self.order = (0..self.items.len()).collect();
+        }
+    }
+
     /// Removes an item. The cursor follows the current track; removing it moves on to the next one.
     pub fn remove(&mut self, index: usize) {
         if index >= self.items.len() {
@@ -244,6 +259,25 @@ mod tests {
             assert!(seen.len() <= 100, "never ends");
         }
         seen
+    }
+
+    #[test]
+    fn push_next_plays_right_after_the_current_track() {
+        let mut q = queue(4, 1);
+        q.push_next(9);
+        let played: Vec<usize> = play_out(&mut q, Advance::Auto)
+            .into_iter()
+            .map(|i| q.items()[i])
+            .collect();
+        assert_eq!(played, [1, 9, 2, 3]);
+
+        let mut q = queue(4, 1);
+        q.set_shuffle(true);
+        q.push_next(9);
+        let current = q.current().unwrap();
+        assert_eq!(q.items()[current], 1);
+        let next = q.advance(Advance::Manual).unwrap();
+        assert_eq!(q.items()[next], 9);
     }
 
     #[test]

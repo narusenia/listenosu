@@ -30,6 +30,8 @@ pub struct MainInput<'a> {
     pub spectrum: &'a [f32],
     pub view_options: &'a [String],
     pub sort_options: &'a [String],
+    /// Playlist names, for the song menu's "Add to playlist".
+    pub playlists: &'a [String],
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -88,7 +90,14 @@ pub fn main_screen(
                 event.list_changed = true;
             }
 
-            event.list = song_list(ui, theme, input.songs, state.selected, input.playing);
+            event.list = song_list(
+                ui,
+                theme,
+                input.songs,
+                state.selected,
+                input.playing,
+                input.playlists,
+            );
             if event.list.clicked.is_some() {
                 state.selected = event.list.clicked;
             }

@@ -396,6 +396,7 @@ impl eframe::App for Gallery {
             spectrum: &levels,
             view_options: &view_options,
             sort_options: &sort_options,
+            playlists: &[],
         };
         let main_only = self.main_only;
         let event = main_screen(ui, &theme, &mut backdrop, &mut state, &input, |ui| {

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -18,6 +18,7 @@ use ui::backdrop::Backdrop;
 use ui::components::notice::{NoticeKind, Toasts};
 use ui::components::playbar::PlaybarEvent;
 use ui::components::playlist_editor::PlaylistView;
+use ui::components::song_list::SongMenu;
 use ui::components::song_rows::RowEvent;
 use ui::components::spectrum::SpectrumSmoother;
 use ui::components::titlebar::{TitlebarEvent, resize_handles, titlebar};
@@ -456,6 +457,39 @@ impl App {
         self.main.selected = Some(row);
     }
 
+    /// The right-click menu of a row in the list.
+    fn apply_song_menu(&mut self, row: usize, choice: SongMenu) {
+        let Some(catalog) = &self.catalog else { return };
+        let Some(song) = self
+            .visible
+            .get(row)
+            .and_then(|&i| catalog.songs.get(i))
+            .cloned()
+        else {
+            return;
+        };
+        match choice {
+            SongMenu::Play => self.play_row(row),
+            SongMenu::PlayNext | SongMenu::AddToQueue => {
+                let next = choice == SongMenu::PlayNext;
+                if let Some(player) = &mut self.player {
+                    if next {
+                        player.enqueue_next(song);
+                    } else {
+                        player.enqueue(song);
+                    }
+                    self.queue_dirty = true;
+                }
+            }
+            SongMenu::AddToPlaylist(index) => self.add_to_playlist(index, song),
+            SongMenu::ShowInFolder => {
+                if let Some(path) = song.audio_path(&catalog.data_dir) {
+                    reveal_in_file_manager(&path);
+                }
+            }
+        }
+    }
+
     fn apply_playbar(&mut self, event: PlaybarEvent, status: Status) {
         if self.player.is_none() {
             return;
@@ -595,7 +629,11 @@ impl App {
                     }
                 }
                 Action::QueueRows(rows) => self.apply_queue_rows(rows),
-                Action::AddToPlaylist(index) => self.add_to_playlist(index),
+                Action::AddToPlaylist(index) => {
+                    if let Some(song) = self.selected_song().cloned() {
+                        self.add_to_playlist(index, song);
+                    }
+                }
                 Action::Playlist(event) => self.apply_playlist_event(event),
             }
         }
@@ -623,10 +661,7 @@ impl App {
         }
     }
 
-    fn add_to_playlist(&mut self, index: usize) {
-        let Some(song) = self.selected_song().cloned() else {
-            return;
-        };
+    fn add_to_playlist(&mut self, index: usize, song: Song) {
         let Some(playlist) = self.playlists.playlists.get_mut(index) else {
             return;
         };
@@ -1052,6 +1087,12 @@ impl App {
             can_add: self.main.selected.is_some(),
             problem,
         };
+        let playlist_names: Vec<String> = self
+            .playlists
+            .playlists
+            .iter()
+            .map(|p| p.name.clone())
+            .collect();
         let input = MainInput {
             songs: &self.views,
             playing: self.playing_row,
@@ -1060,6 +1101,7 @@ impl App {
             spectrum: &levels,
             view_options: &self.view_options,
             sort_options: &self.sort_options,
+            playlists: &playlist_names,
         };
         let mut actions = Vec::new();
         let event = main_screen(
@@ -1078,6 +1120,9 @@ impl App {
         }
         if let Some(row) = event.list.activated {
             self.play_row(row);
+        }
+        if let Some((row, choice)) = event.list.menu {
+            self.apply_song_menu(row, choice);
         }
         if event.playbar.toggle_mini {
             self.set_mini(ctx, true);
@@ -1154,6 +1199,26 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+/// Opens the file manager at `path`. The library is only looked at, never written.
+fn reveal_in_file_manager(path: &Path) {
+    let mut command = if cfg!(windows) {
+        let mut c = std::process::Command::new("explorer");
+        // explorer wants one `/select,<path>` argument.
+        c.arg(format!("/select,{}", path.display()));
+        c
+    } else if cfg!(target_os = "macos") {
+        let mut c = std::process::Command::new("open");
+        c.arg("-R").arg(path);
+        c
+    } else {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(path.parent().unwrap_or(path));
+        c
+    };
+    // Failing to open a file manager is not worth interrupting playback for.
+    let _ = command.spawn();
 }
 
 fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {
