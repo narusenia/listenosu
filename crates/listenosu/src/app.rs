@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -18,6 +18,7 @@ use ui::backdrop::Backdrop;
 use ui::components::notice::{NoticeKind, Toasts};
 use ui::components::playbar::PlaybarEvent;
 use ui::components::playlist_editor::PlaylistView;
+use ui::components::song_list::SongMenu;
 use ui::components::song_rows::RowEvent;
 use ui::components::spectrum::SpectrumSmoother;
 use ui::components::titlebar::{TitlebarEvent, resize_handles, titlebar};
@@ -128,6 +129,7 @@ impl App {
             settings: config.settings_state(),
             main: MainState {
                 sort: config.sort,
+                list_hidden: config.list_hidden,
                 ..Default::default()
             },
             mini: config.mini,
@@ -173,8 +175,7 @@ impl App {
         app.sync_discord_client();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
-        app.theme.backdrop.blur = app.config.backdrop_blur;
-        app.theme.backdrop.dim = app.config.backdrop_dim;
+        app.apply_theme_settings();
         app.open_catalog();
         app
     }
@@ -456,6 +457,39 @@ impl App {
         self.main.selected = Some(row);
     }
 
+    /// The right-click menu of a row in the list.
+    fn apply_song_menu(&mut self, row: usize, choice: SongMenu) {
+        let Some(catalog) = &self.catalog else { return };
+        let Some(song) = self
+            .visible
+            .get(row)
+            .and_then(|&i| catalog.songs.get(i))
+            .cloned()
+        else {
+            return;
+        };
+        match choice {
+            SongMenu::Play => self.play_row(row),
+            SongMenu::PlayNext | SongMenu::AddToQueue => {
+                let next = choice == SongMenu::PlayNext;
+                if let Some(player) = &mut self.player {
+                    if next {
+                        player.enqueue_next(song);
+                    } else {
+                        player.enqueue(song);
+                    }
+                    self.queue_dirty = true;
+                }
+            }
+            SongMenu::AddToPlaylist(index) => self.add_to_playlist(index, song),
+            SongMenu::ShowInFolder => {
+                if let Some(path) = song.audio_path(&catalog.data_dir) {
+                    reveal_in_file_manager(&path);
+                }
+            }
+        }
+    }
+
     fn apply_playbar(&mut self, event: PlaybarEvent, status: Status) {
         if self.player.is_none() {
             return;
@@ -595,7 +629,11 @@ impl App {
                     }
                 }
                 Action::QueueRows(rows) => self.apply_queue_rows(rows),
-                Action::AddToPlaylist(index) => self.add_to_playlist(index),
+                Action::AddToPlaylist(index) => {
+                    if let Some(song) = self.selected_song().cloned() {
+                        self.add_to_playlist(index, song);
+                    }
+                }
                 Action::Playlist(event) => self.apply_playlist_event(event),
             }
         }
@@ -623,10 +661,7 @@ impl App {
         }
     }
 
-    fn add_to_playlist(&mut self, index: usize) {
-        let Some(song) = self.selected_song().cloned() else {
-            return;
-        };
+    fn add_to_playlist(&mut self, index: usize, song: Song) {
         let Some(playlist) = self.playlists.playlists.get_mut(index) else {
             return;
         };
@@ -776,8 +811,7 @@ impl App {
         let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
         let blur_before = self.config.backdrop_blur;
         self.config.apply_settings(&self.settings);
-        self.theme.backdrop.blur = self.config.backdrop_blur;
-        self.theme.backdrop.dim = self.config.backdrop_dim;
+        self.apply_theme_settings();
         if blur_before != self.config.backdrop_blur
             && let Some(source) = self.backdrop_source.clone()
         {
@@ -840,6 +874,16 @@ impl App {
         }
     }
 
+    /// The settings that override the built-in theme's values.
+    fn apply_theme_settings(&mut self) {
+        let (backdrop, spectrum) = (&mut self.theme.backdrop, &mut self.theme.spectrum);
+        backdrop.blur = self.config.backdrop_blur;
+        backdrop.dim = self.config.backdrop_dim;
+        spectrum.bars = self.config.spectrum_bars;
+        spectrum.decay_per_second = self.config.spectrum_decay;
+        spectrum.height = self.config.spectrum_height;
+    }
+
     fn apply_window_level(&self, ctx: &egui::Context) {
         let level = if self.mini && self.config.mini_on_top {
             egui::WindowLevel::AlwaysOnTop
@@ -861,12 +905,23 @@ impl App {
         if bar.close {
             ctx.send_viewport_cmd(Cmd::Close);
         }
+        if bar.toggle_pin {
+            self.config.mini_on_top = !self.config.mini_on_top;
+            self.settings.mini_on_top = self.config.mini_on_top;
+            self.apply_window_level(ctx);
+            self.touch_config();
+        }
         if bar.settings {
-            self.page = Page::Settings;
+            self.toggle_page(Page::Settings);
         }
         if bar.about {
-            self.page = Page::About;
+            self.toggle_page(Page::About);
         }
+    }
+
+    /// The title bar icons open their page, and close it when pressed again.
+    fn toggle_page(&mut self, page: Page) {
+        self.page = if self.page == page { Page::Main } else { page };
     }
 
     fn set_mini(&mut self, ctx: &egui::Context, mini: bool) {
@@ -1041,6 +1096,12 @@ impl App {
             can_add: self.main.selected.is_some(),
             problem,
         };
+        let playlist_names: Vec<String> = self
+            .playlists
+            .playlists
+            .iter()
+            .map(|p| p.name.clone())
+            .collect();
         let input = MainInput {
             songs: &self.views,
             playing: self.playing_row,
@@ -1049,6 +1110,7 @@ impl App {
             spectrum: &levels,
             view_options: &self.view_options,
             sort_options: &self.sort_options,
+            playlists: &playlist_names,
         };
         let mut actions = Vec::new();
         let event = main_screen(
@@ -1067,6 +1129,13 @@ impl App {
         }
         if let Some(row) = event.list.activated {
             self.play_row(row);
+        }
+        if let Some((row, choice)) = event.list.menu {
+            self.apply_song_menu(row, choice);
+        }
+        if self.main.list_hidden != self.config.list_hidden {
+            self.config.list_hidden = self.main.list_hidden;
+            self.touch_config();
         }
         if event.playbar.toggle_mini {
             self.set_mini(ctx, true);
@@ -1110,8 +1179,16 @@ impl eframe::App for App {
             !self.mini,
             self.catalog.is_some() && !self.mini,
             song.as_deref(),
+            self.mini.then_some(self.config.mini_on_top),
         );
         self.apply_titlebar(&ctx, bar);
+        // Esc leaves a page, unless the hotkey button is waiting for a key (Esc may be the key).
+        if self.page != Page::Main
+            && !self.settings.capturing
+            && ctx.input(|i| i.key_pressed(egui::Key::Escape))
+        {
+            self.page = Page::Main;
+        }
         if !self.mini {
             resize_handles(&ctx, &self.theme);
         }
@@ -1135,6 +1212,26 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+/// Opens the file manager at `path`. The library is only looked at, never written.
+fn reveal_in_file_manager(path: &Path) {
+    let mut command = if cfg!(windows) {
+        let mut c = std::process::Command::new("explorer");
+        // explorer wants one `/select,<path>` argument.
+        c.arg(format!("/select,{}", path.display()));
+        c
+    } else if cfg!(target_os = "macos") {
+        let mut c = std::process::Command::new("open");
+        c.arg("-R").arg(path);
+        c
+    } else {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(path.parent().unwrap_or(path));
+        c
+    };
+    // Failing to open a file manager is not worth interrupting playback for.
+    let _ = command.spawn();
 }
 
 fn open_hotkey(ctx: &egui::Context, commands: Sender<Command>) -> Option<Hotkey> {

@@ -16,6 +16,8 @@ pub struct MainState {
     pub view: usize,
     pub sort: usize,
     pub selected: Option<usize>,
+    /// The song list is collapsed, leaving the song info and backdrop the whole width.
+    pub list_hidden: bool,
 }
 
 pub struct MainInput<'a> {
@@ -30,6 +32,8 @@ pub struct MainInput<'a> {
     pub spectrum: &'a [f32],
     pub view_options: &'a [String],
     pub sort_options: &'a [String],
+    /// Playlist names, for the song menu's "Add to playlist".
+    pub playlists: &'a [String],
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -56,12 +60,18 @@ pub fn main_screen(
 
     Panel::bottom("main_playbar")
         .frame(Frame::NONE)
-        .show(ui, |ui| event.playbar = playbar(ui, theme, input.player));
+        .show(ui, |ui| {
+            event.playbar = playbar(ui, theme, input.player, state.list_hidden);
+        });
+    if event.playbar.toggle_list {
+        state.list_hidden = !state.list_hidden;
+    }
 
+    let mut list_open = !state.list_hidden;
     Panel::right("main_list")
         .frame(Frame::NONE.inner_margin(Margin::same(theme.shape.padding as i8)))
         .default_size(theme.shape.list_width)
-        .show(ui, |ui| {
+        .show_collapsible(ui, &mut list_open, |ui| {
             let mut changed = search_bar(ui, theme, &mut state.query, input.songs.len()).changed();
             // View and Sort share one row, half of the width each.
             ui.horizontal(|ui| {
@@ -88,7 +98,14 @@ pub fn main_screen(
                 event.list_changed = true;
             }
 
-            event.list = song_list(ui, theme, input.songs, state.selected, input.playing);
+            event.list = song_list(
+                ui,
+                theme,
+                input.songs,
+                state.selected,
+                input.playing,
+                input.playlists,
+            );
             if event.list.clicked.is_some() {
                 state.selected = event.list.clicked;
             }

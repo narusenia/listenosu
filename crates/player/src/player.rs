@@ -205,6 +205,11 @@ impl<T> Player<T> {
         self.queue.push(item);
     }
 
+    /// Inserts after the current track, so it plays next, without interrupting playback.
+    pub fn enqueue_next(&mut self, item: T) {
+        self.queue.push_next(item);
+    }
+
     /// Removes a queue item. Removing the playing track moves on to the next one.
     pub fn remove(&mut self, index: usize) {
         let playing = self.queue.current() == Some(index) && self.current.is_some();

@@ -86,6 +86,9 @@ impl Gallery {
                 tray_on_close: true,
                 mini_on_top: false,
                 spectrum: true,
+                spectrum_bars: Theme::lazer().spectrum.bars,
+                spectrum_decay: Theme::lazer().spectrum.decay_per_second,
+                spectrum_height: Theme::lazer().spectrum.height,
                 backdrop_blur: Theme::lazer().backdrop.blur,
                 backdrop_dim: Theme::lazer().backdrop.dim,
                 hotkeys: false,
@@ -396,6 +399,7 @@ impl eframe::App for Gallery {
             spectrum: &levels,
             view_options: &view_options,
             sort_options: &sort_options,
+            playlists: &[],
         };
         let main_only = self.main_only;
         let event = main_screen(ui, &theme, &mut backdrop, &mut state, &input, |ui| {

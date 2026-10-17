@@ -7,6 +7,8 @@ const NUNITO: &[u8] = include_bytes!("../../../assets/fonts/nunito/Nunito[wght].
 const NOTO_SANS_JP: &[u8] =
     include_bytes!("../../../assets/fonts/noto-sans-jp/NotoSansJP[wght].ttf");
 
+const LUCIDE: &[u8] = include_bytes!("../../../assets/fonts/lucide/lucide.ttf");
+
 const REGULAR_WEIGHT: f32 = 400.0;
 const BOLD_WEIGHT: f32 = 700.0;
 
@@ -15,9 +17,15 @@ const BOLD_WEIGHT: f32 = 700.0;
 const NOTO_SANS_JP_Y_OFFSET: f32 = -0.107;
 
 const BOLD_FAMILY: &str = "bold";
+const ICON_FAMILY: &str = "icons";
 
 pub fn bold_family() -> FontFamily {
     FontFamily::Name(BOLD_FAMILY.into())
+}
+
+/// The Lucide icon font; its glyphs live in the private use area.
+pub fn icon_family() -> FontFamily {
+    FontFamily::Name(ICON_FAMILY.into())
 }
 
 pub fn bold(size: f32) -> FontId {
@@ -56,6 +64,13 @@ pub fn install(ctx: &egui::Context) {
             Arc::new(FontData::from_static(bytes).tweak(tweak)),
         );
     }
+
+    fonts
+        .font_data
+        .insert("lucide".to_owned(), Arc::new(FontData::from_static(LUCIDE)));
+    fonts
+        .families
+        .insert(icon_family(), vec!["lucide".to_owned()]);
 
     fonts
         .families
