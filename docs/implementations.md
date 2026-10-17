@@ -26,7 +26,7 @@
 | 5 | アプリ統合（メイン画面・ミニプレイヤー） | ほぼ完了（本体に実装し、起動・ライブラリ読み込み・キャッシュ保存は確認済み。クリック操作（再生・キュー・プレイリスト・ミニ切替・位置の記憶）はユーザーの確認待ち） | |
 | 6 | OS 連携 | ほぼ完了（メディアキーと OS のメディア表示まで実装。目視確認待ち。Discord は実装済み。いずれも目視・実機確認待ち） | |
 | 7 | 多言語化・設定画面・仕上げ | 着手（翻訳の仕組み、README と About、ブランド規約の確認が済み。残りは更新確認（HTTP の依存の導入前に確認が要る）、設定画面の仕上げ、日本語表示の目視確認） | |
-| 8 | 配布 | 未着手 | |
+| 8 | 配布 | 着手（Windows の zip とリリース用 CI の定義まで。残りは CI の実行確認、macOS・Linux、v1.0.0 の公開） | |
 
 ## 構成（予定）
 
@@ -166,10 +166,10 @@ listenosu/
 
 ## Phase 8: 配布
 
-- [ ] Windows：zip（本体とヘルパーを同梱）
+- [x] Windows：zip（本体とヘルパーを同梱）（`scripts/package-windows.ps1`。`dist/listenosu-<版>-win-x64.zip`、23.5 MB。展開して起動し、ヘルパーが動くことを確認）
 - [ ] macOS：.app と dmg（署名と公証をするか決める）
 - [ ] Linux：tar.gz（努力目標）
-- [ ] リリース用 CI
+- [~] リリース用 CI（`.github/workflows/release.yml`。`v*` タグで Windows の zip を作り GitHub Releases に出す。まだ GitHub で動かしていない）
 
 **完了条件**: GitHub Releases に v1.0.0 を公開する
 
@@ -232,3 +232,4 @@ listenosu/
 - 2026-10-17: 描画を wgpu から glow（OpenGL）に変えた（`perf/glow-renderer`、ユーザーが glow 固定を決定。切り替え設定は作らない）。アイドル時のメモリ（release、起動 25 秒後、再生なし）が、wgpu の自動選択で WS 198 MB / プライベート 402 MB だったのが、glow で WS 107 MB / プライベート 90 MB になった。原因は、wgpu が Vulkan・DX12・GL のドライバを全部読み込むこと（`WGPU_BACKEND` で 1 つに絞ると 160〜350 MB）。依存は `eframe` の features を `glow` に替えた（既定の `wgpu` と `winit/default` を外す。`winit/default` は features に書けない）。`system_font_fallback` を切るとさらに約 56 MB 減る可能性があるが、同梱の Noto Sans JP に無いハングルや絵文字が豆腐になるため入れていない（切るなら先に同梱フォントを足す）。**未確認**: 実機の GPU・ドライバでの見た目と動作（古い GPU や仮想環境では OpenGL が動かない可能性）、glow での 1 回目の起動だけ WS 165 MB / プライベート 144 MB と高かった理由、約 90 MB の内訳
 - 2026-10-17: Discord Rich Presence の表示を増やした（`feat/discord-presence`）。(1) 再生中は終了時刻も送り、Discord が残り時間のバーを出す（長さが 0 の曲は開始時刻のみ）。(2) カバー画像（`https://assets.ppy.sh/beatmaps/{id}/covers/cover.jpg`）と譜面ページのボタン（`https://osu.ppy.sh/beatmapsets/{id}`）を、設定の Discord の下の 2 つのトグルで出す（**既定は OFF**。ON にすると、再生中の曲の ID が Discord に渡り、カバーは ppy の画像サーバーから取得される）。(3) そのため、ヘルパーが BeatmapSet の `OnlineID` を `online_id` として送るようにした（0 以下は null。手元の 47 曲中 46 曲で取得。プロトコルは項目の追加のみ）。`Song::online_id` は `Option`、古いキャッシュとプレイリストはそのまま読める。ID の無い曲（ローカル取り込みなど）は、カバーとボタンを出さない。状態の文言は今回は変えていない。**未確認**: Discord 上の見た目（カバーの切り抜き：`cover.jpg` は横長、ボタンの表示、残り時間のバー、ボタンは自分の表示には出ない仕様）、`online_id` がヘルパー経由でアプリに届くこと（本体での再生は未実施）
 - 2026-10-17: exe のアイコンと、release のコンソール窓を直した。(1) `#![windows_subsystem = "windows"]` を release の Windows だけに付けた（debug はログのためコンソールを残す。ヘルパーは以前から `CREATE_NO_WINDOW`）。(2) `winresource` 0.1（ユーザー承認済み、Windows のビルド依存のみ）で、`assets/icons/listenosu.ico`（256 と 32 の PNG をそのまま入れた ICO）を `build.rs` から埋め込む。release ビルドで、サブシステムが GUI になったことと、exe にアイコンが入ったことを確認した。**未確認**: エクスプローラー・タスクバーでの見た目（キャッシュで古いアイコンが残ることがある）、macOS の .icns
+- 2026-10-17: Phase 8 を開始し、Windows の zip を作った。`scripts/package-windows.ps1` が release ビルドと `helper/publish.ps1` を行い、本体・ヘルパー・LICENSE・README を `dist/` に zip にする（`/dist` は .gitignore）。zip を展開して起動し、ヘルパーまで動くことを確認した。リリース CI は `v*` タグの push で zip を作り、`gh release create` で公開する（サードパーティの Action は使わない）。**未確認**: CI の実行（push とタグが要る）、ヘルパーの pdb（約数 MB、配布に要るか未検討）、zip に第三者ライセンスの全文を入れるか（今は About と README のみ）。なお、トレイに隠れた本体は `targetelease` の exe を掴み続けるので、再ビルドの前にトレイの Quit が要る
