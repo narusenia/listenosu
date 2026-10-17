@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use library::store::{AppDirs, read_json, write_json};
 use player::Repeat;
 use serde::{Deserialize, Serialize};
+use ui::Theme;
 use ui::screens::settings::SettingsState;
 
 /// Outer position and inner size of a window, in points.
@@ -33,6 +34,8 @@ pub struct Config {
     pub tray_on_close: bool,
     pub mini_on_top: bool,
     pub spectrum: bool,
+    pub backdrop_blur: f32,
+    pub backdrop_dim: f32,
     pub hotkeys: bool,
     pub hotkey_play_pause: Option<String>,
     pub discord: bool,
@@ -65,6 +68,8 @@ impl Default for Config {
             tray_on_close: true,
             mini_on_top: false,
             spectrum: true,
+            backdrop_blur: Theme::lazer().backdrop.blur,
+            backdrop_dim: Theme::lazer().backdrop.dim,
             hotkeys: false,
             hotkey_play_pause: None,
             discord: false,
@@ -123,6 +128,8 @@ impl Config {
             tray_on_close: self.tray_on_close,
             mini_on_top: self.mini_on_top,
             spectrum: self.spectrum,
+            backdrop_blur: self.backdrop_blur,
+            backdrop_dim: self.backdrop_dim,
             hotkeys: self.hotkeys,
             hotkey_play_pause: self.hotkey_play_pause.clone(),
             discord: self.discord,
@@ -141,6 +148,8 @@ impl Config {
         self.tray_on_close = s.tray_on_close;
         self.mini_on_top = s.mini_on_top;
         self.spectrum = s.spectrum;
+        self.backdrop_blur = s.backdrop_blur;
+        self.backdrop_dim = s.backdrop_dim;
         self.hotkeys = s.hotkeys;
         self.hotkey_play_pause = s.hotkey_play_pause.clone();
         self.discord = s.discord;
