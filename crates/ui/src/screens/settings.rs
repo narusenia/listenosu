@@ -21,6 +21,11 @@ pub struct SettingsState {
     pub mini_on_top: bool,
     pub spectrum: bool,
     /// Backdrop blur strength and darkening (0.0 to 1.0); the same values as `Theme::backdrop`.
+    /// Spectrum bar count, fall speed (fraction of the range per second) and height; the same
+    /// values as `Theme::spectrum`.
+    pub spectrum_bars: usize,
+    pub spectrum_decay: f32,
+    pub spectrum_height: f32,
     pub backdrop_blur: f32,
     pub backdrop_dim: f32,
     pub hotkeys: bool,
@@ -75,6 +80,22 @@ pub fn settings_screen(
                 );
                 setting_row(ui, theme, "Audio spectrum", |ui| {
                     toggle(ui, theme, &mut state.spectrum);
+                });
+                ui.add_enabled_ui(state.spectrum, |ui| {
+                    setting_row(ui, theme, "Spectrum bars", |ui| {
+                        ui.add(egui::Slider::new(&mut state.spectrum_bars, 16..=128).step_by(8.0));
+                    });
+                    setting_row(ui, theme, "Spectrum fall speed", |ui| {
+                        ui.add(
+                            egui::Slider::new(&mut state.spectrum_decay, 0.4..=4.0).step_by(0.2),
+                        );
+                    });
+                    setting_row(ui, theme, "Spectrum height", |ui| {
+                        ui.add(
+                            egui::Slider::new(&mut state.spectrum_height, 24.0..=160.0)
+                                .step_by(8.0),
+                        );
+                    });
                 });
                 setting_row(ui, theme, "Backdrop blur", |ui| {
                     ui.add(egui::Slider::new(&mut state.backdrop_blur, 4.0..=48.0).step_by(1.0));

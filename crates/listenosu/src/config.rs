@@ -34,6 +34,9 @@ pub struct Config {
     pub tray_on_close: bool,
     pub mini_on_top: bool,
     pub spectrum: bool,
+    pub spectrum_bars: usize,
+    pub spectrum_decay: f32,
+    pub spectrum_height: f32,
     pub backdrop_blur: f32,
     pub backdrop_dim: f32,
     pub hotkeys: bool,
@@ -71,6 +74,9 @@ impl Default for Config {
             tray_on_close: true,
             mini_on_top: false,
             spectrum: true,
+            spectrum_bars: Theme::lazer().spectrum.bars,
+            spectrum_decay: Theme::lazer().spectrum.decay_per_second,
+            spectrum_height: Theme::lazer().spectrum.height,
             backdrop_blur: Theme::lazer().backdrop.blur,
             backdrop_dim: Theme::lazer().backdrop.dim,
             hotkeys: false,
@@ -131,6 +137,9 @@ impl Config {
             tray_on_close: self.tray_on_close,
             mini_on_top: self.mini_on_top,
             spectrum: self.spectrum,
+            spectrum_bars: self.spectrum_bars,
+            spectrum_decay: self.spectrum_decay,
+            spectrum_height: self.spectrum_height,
             backdrop_blur: self.backdrop_blur,
             backdrop_dim: self.backdrop_dim,
             hotkeys: self.hotkeys,
@@ -151,6 +160,9 @@ impl Config {
         self.tray_on_close = s.tray_on_close;
         self.mini_on_top = s.mini_on_top;
         self.spectrum = s.spectrum;
+        self.spectrum_bars = s.spectrum_bars;
+        self.spectrum_decay = s.spectrum_decay;
+        self.spectrum_height = s.spectrum_height;
         self.backdrop_blur = s.backdrop_blur;
         self.backdrop_dim = s.backdrop_dim;
         self.hotkeys = s.hotkeys;

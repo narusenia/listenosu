@@ -175,8 +175,7 @@ impl App {
         app.sync_discord_client();
         app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
-        app.theme.backdrop.blur = app.config.backdrop_blur;
-        app.theme.backdrop.dim = app.config.backdrop_dim;
+        app.apply_theme_settings();
         app.open_catalog();
         app
     }
@@ -812,8 +811,7 @@ impl App {
         let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
         let blur_before = self.config.backdrop_blur;
         self.config.apply_settings(&self.settings);
-        self.theme.backdrop.blur = self.config.backdrop_blur;
-        self.theme.backdrop.dim = self.config.backdrop_dim;
+        self.apply_theme_settings();
         if blur_before != self.config.backdrop_blur
             && let Some(source) = self.backdrop_source.clone()
         {
@@ -874,6 +872,16 @@ impl App {
             self.toasts
                 .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
         }
+    }
+
+    /// The settings that override the built-in theme's values.
+    fn apply_theme_settings(&mut self) {
+        let (backdrop, spectrum) = (&mut self.theme.backdrop, &mut self.theme.spectrum);
+        backdrop.blur = self.config.backdrop_blur;
+        backdrop.dim = self.config.backdrop_dim;
+        spectrum.bars = self.config.spectrum_bars;
+        spectrum.decay_per_second = self.config.spectrum_decay;
+        spectrum.height = self.config.spectrum_height;
     }
 
     fn apply_window_level(&self, ctx: &egui::Context) {
