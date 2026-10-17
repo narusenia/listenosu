@@ -1,6 +1,6 @@
 use egui::{Frame, Margin, RichText};
 
-use super::controls::slider_bar;
+use super::controls::{seek_bar, slider_bar};
 use super::icons::{Icon, icon_button, icon_toggle};
 use crate::model::{PlayerView, Repeat, mmss};
 use crate::theme::Theme;
@@ -80,7 +80,7 @@ pub fn playbar(ui: &mut egui::Ui, theme: &Theme, player: &PlayerView) -> Playbar
                 } else {
                     0.0
                 };
-                let (_, seek) = slider_bar(ui, theme, seek_width.max(0.0), progress);
+                let (_, seek) = seek_bar(ui, theme, seek_width.max(0.0), progress);
                 event.seek_secs = seek.map(|fraction| fraction * player.length_secs);
                 fixed(ui, mmss(player.length_secs));
 

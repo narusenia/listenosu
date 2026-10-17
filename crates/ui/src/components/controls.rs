@@ -65,23 +65,57 @@ pub fn dropdown_inline(
     changed
 }
 
-/// Thin horizontal bar for seeking and volume.
-/// Returns the new value (0.0 to 1.0) while the user presses or drags on it.
+/// Thin horizontal bar for volume.
+/// Returns the new value (0.0 to 1.0) continuously while the user presses or drags on it.
 pub fn slider_bar(
     ui: &mut egui::Ui,
     theme: &Theme,
     width: f32,
     value: f32,
 ) -> (Response, Option<f32>) {
+    bar(ui, theme, width, value, false)
+}
+
+/// Same bar for seeking. Dragging only moves the handle; the value is returned once, when the
+/// user lets go (or clicks), because every seek restarts the decoder and a stream of them is audible.
+pub fn seek_bar(
+    ui: &mut egui::Ui,
+    theme: &Theme,
+    width: f32,
+    value: f32,
+) -> (Response, Option<f32>) {
+    bar(ui, theme, width, value, true)
+}
+
+fn bar(
+    ui: &mut egui::Ui,
+    theme: &Theme,
+    width: f32,
+    value: f32,
+    on_release: bool,
+) -> (Response, Option<f32>) {
     let (rect, response) = ui.allocate_exact_size(
         vec2(width, theme.shape.padding * 1.5),
         Sense::click_and_drag(),
     );
+    let at_pointer = response
+        .interact_pointer_pos()
+        .map(|pos| ((pos.x - rect.left()) / rect.width()).clamp(0.0, 1.0));
+    // The last dragged position, since the release frame may carry no pointer position.
+    let drag_key = response.id.with("dragged");
+    if on_release && response.dragged() {
+        ui.data_mut(|d| d.insert_temp(drag_key, at_pointer));
+    }
+    let shown = match at_pointer {
+        Some(pointer) if on_release && response.dragged() => pointer,
+        _ => value,
+    };
+
     let c = &theme.colors;
     let track_height = theme.shape.spacing / 2.0;
     let track = Rect::from_center_size(rect.center(), vec2(rect.width(), track_height));
     let radius = track_height / 2.0;
-    let value = value.clamp(0.0, 1.0);
+    let value = shown.clamp(0.0, 1.0);
 
     let painter = ui.painter();
     painter.rect_filled(track, radius, c.surface_hover);
@@ -99,10 +133,18 @@ pub fn slider_bar(
             .circle_filled(center, track_height * 1.5, handle);
     }
 
-    let new_value = if response.is_pointer_button_down_on() || response.clicked() {
-        response
-            .interact_pointer_pos()
-            .map(|pos| ((pos.x - rect.left()) / rect.width()).clamp(0.0, 1.0))
+    let new_value = if !on_release {
+        if response.is_pointer_button_down_on() || response.clicked() {
+            at_pointer
+        } else {
+            None
+        }
+    } else if response.drag_stopped() {
+        ui.data_mut(|d| d.remove_temp::<Option<f32>>(drag_key))
+            .flatten()
+            .or(at_pointer)
+    } else if response.clicked() {
+        at_pointer
     } else {
         None
     };

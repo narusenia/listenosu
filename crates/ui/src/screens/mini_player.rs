@@ -1,7 +1,7 @@
 use egui::{Align, Frame, Label, Layout, Margin, RichText, UiBuilder, pos2};
 
 use crate::backdrop::Backdrop;
-use crate::components::controls::slider_bar;
+use crate::components::controls::seek_bar;
 use crate::components::icons::{Icon, icon_button};
 use crate::components::playbar::PlaybarEvent;
 use crate::components::spectrum::spectrum;
@@ -99,7 +99,7 @@ pub fn mini_player(
                 } else {
                     0.0
                 };
-                let (_, seek) = slider_bar(ui, theme, seek_width.max(0.0), progress);
+                let (_, seek) = seek_bar(ui, theme, seek_width.max(0.0), progress);
                 pb.seek_secs = seek.map(|fraction| fraction * player.length_secs);
                 time(ui, player.length_secs);
             });
