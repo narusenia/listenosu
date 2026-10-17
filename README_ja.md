@@ -6,9 +6,9 @@ osu!lazer のライブラリにある楽曲を、作業用 BGM として流し�
 
 > **これは非公式のアプリです。** osu! および ppy Pty Ltd とは関係がなく、承認も受けていません。
 
-> **開発中です。** まだ使えるものはありません。
+> **開発中です。** まだ公開していません。
 
-## 特徴（予定）
+## 特徴
 
 - lazer を起動したままでも使える（lazer のデータは読み取り専用で扱い、書き込みません）
 - 同じ音声は 1 曲にまとめた一覧、全文検索、並べ替え
@@ -41,4 +41,9 @@ Windows では MSVC Build Tools（C++ によるデスクトップ開発）が必
 
 ## ライセンス
 
-[MIT](LICENSE)
+listenosu! は [MIT License](LICENSE) です。次のフォントとアイコンを同梱しています。
+
+- Nunito と Noto Sans JP：SIL Open Font License 1.1
+- Lucide アイコン：ISC License
+
+osu! のロゴと Torus フォントは含みません。「osu!」は ppy Pty Ltd の名称です。
