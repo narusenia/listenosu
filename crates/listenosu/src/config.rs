@@ -126,6 +126,7 @@ impl Config {
             hotkeys: self.hotkeys,
             hotkey_play_pause: self.hotkey_play_pause.clone(),
             discord: self.discord,
+            discord_app_id: self.discord_app_id.clone(),
             check_updates: self.check_updates,
             capturing: false,
         }
@@ -143,6 +144,7 @@ impl Config {
         self.hotkeys = s.hotkeys;
         self.hotkey_play_pause = s.hotkey_play_pause.clone();
         self.discord = s.discord;
+        self.discord_app_id = s.discord_app_id.clone();
         self.check_updates = s.check_updates;
     }
 }
