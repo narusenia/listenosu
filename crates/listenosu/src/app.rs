@@ -5,6 +5,7 @@ use eframe::egui;
 use library::Song;
 use library::playlist::Playlists;
 use library::store::AppDirs;
+use platform::media::{Command, Media, Track};
 use player::{Event, Player, Repeat, Status};
 use ui::Theme;
 use ui::backdrop::Backdrop;
@@ -85,6 +86,8 @@ pub struct App {
     smoother: SpectrumSmoother,
     seek_hold: Option<(f32, Instant)>,
     settle: u8,
+    /// None when the OS refuses media controls; the app works without them.
+    media: Option<Media>,
 }
 
 impl App {
@@ -130,6 +133,7 @@ impl App {
             smoother: SpectrumSmoother::default(),
             seek_hold: None,
             settle: SETTLE_FRAMES,
+            media: open_media(cc),
         };
         app.side.open = side_open;
         app.open_catalog();
@@ -259,6 +263,7 @@ impl App {
         }
         let events = self.player.as_mut().map(Player::tick).unwrap_or_default();
         self.handle_player_events(ctx, events);
+        self.sync_media();
         if let Some(decoded) = self.loader.poll() {
             self.set_backdrop(ctx, &decoded);
         }
@@ -287,6 +292,9 @@ impl App {
                 (Event::Finished, _) => {
                     self.now_playing = None;
                     self.now_view = None;
+                    if let Some(media) = &mut self.media {
+                        media.set_track(None);
+                    }
                     self.playing_row = None;
                 }
                 _ => {}
@@ -325,6 +333,17 @@ impl App {
                 self.loader.cancel();
                 self.backdrop.clear();
             }
+        }
+        if let (Some(media), Some(view), Some(catalog)) =
+            (&mut self.media, &self.now_view, &self.catalog)
+        {
+            let cover = song.background_path(&catalog.data_dir);
+            media.set_track(Some(&Track {
+                title: &view.title,
+                artist: &view.artist,
+                cover: cover.as_deref(),
+                length_secs: f64::from(song.length_secs()),
+            }));
         }
         self.now_playing = Some(song);
         self.update_playing_row();
@@ -437,6 +456,53 @@ impl App {
         }
         if event.prev {
             self.with_player(Player::previous);
+        }
+    }
+
+    /// Applies media keys and the OS media overlay, then reports the state back to the OS.
+    fn sync_media(&mut self) {
+        let Some(media) = &self.media else { return };
+        let commands = media.poll();
+        let mut status = self.player.as_ref().map(Player::status).unwrap_or_default();
+        for command in commands {
+            let playing = status.index.is_some() && !status.paused;
+            let event = match command {
+                Command::Play if !playing => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Pause | Command::Stop if playing => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Toggle => PlaybarEvent {
+                    toggle_play: true,
+                    ..Default::default()
+                },
+                Command::Next => PlaybarEvent {
+                    next: true,
+                    ..Default::default()
+                },
+                Command::Previous => PlaybarEvent {
+                    prev: true,
+                    ..Default::default()
+                },
+                Command::SeekTo(secs) => PlaybarEvent {
+                    seek_secs: Some(secs as f32),
+                    ..Default::default()
+                },
+                Command::SeekBy(by) => PlaybarEvent {
+                    seek_secs: Some((status.position + by).clamp(0.0, status.length) as f32),
+                    ..Default::default()
+                },
+                _ => continue,
+            };
+            self.apply_playbar(event, status);
+            status = self.player.as_ref().map(Player::status).unwrap_or_default();
+        }
+        let playing = status.index.map(|_| !status.paused);
+        if let Some(media) = &mut self.media {
+            media.set_state(playing, status.position);
         }
     }
 
@@ -723,7 +789,9 @@ impl App {
         };
         ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(min.into()));
         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(
-            saved.map_or(default_size, |g| g.size).into(),
+            saved
+                .map_or(default_size, |g| crate::at_least(g.size, min))
+                .into(),
         ));
         if let Some(g) = saved {
             ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(g.position.into()));
@@ -919,12 +987,17 @@ impl eframe::App for App {
             self.save_config(true);
         }
 
+        let song = self
+            .now_view
+            .as_ref()
+            .map(|v| format!("{} - {}", v.title, v.artist));
         let bar = titlebar(
             ui,
             &self.theme,
             "listenosu!",
             !self.mini,
             self.catalog.is_some() && !self.mini,
+            song.as_deref(),
         );
         self.apply_titlebar(&ctx, bar);
         if !self.mini {
@@ -950,6 +1023,15 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+fn open_media(cc: &eframe::CreationContext<'_>) -> Option<Media> {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let hwnd = match cc.window_handle().ok()?.as_raw() {
+        RawWindowHandle::Win32(handle) => Some(handle.hwnd.get() as *mut std::ffi::c_void),
+        _ => None,
+    };
+    Media::new(hwnd).ok()
 }
 
 /// Spreads or averages `levels` over `n` bars.
