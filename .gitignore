@@ -3,3 +3,4 @@
 /helper/**/obj
 *.log
 .DS_Store
+/dist
