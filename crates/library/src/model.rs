@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub struct Song {
     pub audio_hash: String,
     pub background_hash: Option<String>,
+    /// The beatmap set's id on osu!; None for sets not downloaded from it.
+    pub online_id: Option<i64>,
     pub title: String,
     pub title_unicode: String,
     pub artist: String,

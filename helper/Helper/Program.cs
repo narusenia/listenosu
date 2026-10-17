@@ -92,6 +92,10 @@ void WriteLibrary(Utf8JsonWriter w, string type, List<Song> songs, List<Collecti
         w.WriteStartObject();
         w.WriteString("audio_hash", s.AudioHash);
         w.WriteString("background_hash", s.BackgroundHash);
+        if (s.OnlineId is { } onlineId)
+            w.WriteNumber("online_id", onlineId);
+        else
+            w.WriteNull("online_id");
         w.WriteString("title", s.Title);
         w.WriteString("title_unicode", s.TitleUnicode);
         w.WriteString("artist", s.Artist);
