@@ -21,6 +21,9 @@ pub fn setting_row(
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
+                let height = super::controls::fix_row_height(ui);
+                // The toggle is taller than a button.
+                ui.set_min_height(height.max(theme.shape.spacing * 3.0));
                 ui.label(label);
                 ui.with_layout(Layout::right_to_left(Align::Center), controls);
             });

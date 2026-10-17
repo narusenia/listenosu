@@ -72,6 +72,7 @@ impl PlaylistEditor {
         ui.separator();
 
         ui.horizontal(|ui| {
+            super::controls::fix_row_height(ui);
             if let Some(name) = &mut self.rename {
                 ui.add(
                     egui::TextEdit::singleline(name)
