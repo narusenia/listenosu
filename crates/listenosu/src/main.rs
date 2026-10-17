@@ -15,6 +15,7 @@ use config::Config;
 fn main() -> eframe::Result {
     let dirs = AppDirs::from_env();
     let config = dirs.as_ref().map(Config::load).unwrap_or_default();
+    ui::i18n::set_language(ui::i18n::Lang::from_setting(config.language));
     eframe::run_native(
         "listenosu!",
         eframe::NativeOptions {

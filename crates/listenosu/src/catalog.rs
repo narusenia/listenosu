@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use ui::i18n::{t, tr};
 
 use library::helper::{Event, Helper};
 use library::playlist::{collection_songs, is_missing};
@@ -30,9 +31,9 @@ impl Catalog {
             .unwrap_or_default();
         let helper = helper_exe().map(|exe| Helper::start(exe, data_dir.clone()));
         let mut catalog = Self {
-            problem: helper.is_none().then(|| {
-                "The library helper was not found. Showing the last known library.".into()
-            }),
+            problem: helper
+                .is_none()
+                .then(|| t("problem.helper_missing").to_owned()),
             songs,
             collections,
             data_dir,
@@ -66,14 +67,13 @@ impl Catalog {
                     changed = true;
                 }
                 Event::Message(Message::Error { message, .. }) => {
-                    self.problem = Some(format!(
-                        "Could not read osu!lazer's library ({message}). Showing the last known library."
-                    ));
+                    self.problem = Some(tr("problem.read_failed", &[("message", &message)]));
                 }
                 Event::Message(Message::Version { .. }) => {}
                 Event::Failed(reason) => {
-                    self.problem = Some(format!(
-                        "The library helper stopped ({reason}). Showing the last known library."
+                    self.problem = Some(tr(
+                        "problem.helper_stopped",
+                        &[("reason", &reason.to_string())],
                     ));
                 }
             }

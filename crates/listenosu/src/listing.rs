@@ -5,20 +5,26 @@ use std::collections::HashSet;
 use library::Song;
 use library::playlist::Playlists;
 use library::search::{SortKey, search};
+use ui::i18n::{t, tr};
 use ui::model::SongView;
 
 use crate::catalog::Catalog;
 
-pub const SORT_OPTIONS: [&str; 6] = [
-    "Title",
-    "Artist",
-    "Date added",
-    "Length",
-    "BPM",
-    "Last played",
-];
+/// Labels for `SORTS`, in the same order.
+pub fn sort_options() -> Vec<String> {
+    [
+        "title",
+        "artist",
+        "date_added",
+        "length",
+        "bpm",
+        "last_played",
+    ]
+    .map(|key| t(&format!("sort.{key}")).to_owned())
+    .to_vec()
+}
 
-/// In the order of `SORT_OPTIONS`, with whether the order is newest / biggest first.
+/// In the order of `sort_options`, with whether the order is newest / biggest first.
 const SORTS: [(SortKey, bool); 6] = [
     (SortKey::Title, false),
     (SortKey::Artist, false),
@@ -33,12 +39,12 @@ pub fn view_options(catalog: &Catalog, playlists: &Playlists) -> Vec<String> {
     let collections = catalog
         .collections
         .iter()
-        .map(|c| format!("Collection: {}", c.name));
+        .map(|c| tr("main.collection", &[("name", &c.name)]));
     let lists = playlists
         .playlists
         .iter()
-        .map(|p| format!("Playlist: {}", p.name));
-    std::iter::once("All songs".to_owned())
+        .map(|p| tr("main.playlist", &[("name", &p.name)]));
+    std::iter::once(t("main.all_songs").to_owned())
         .chain(collections)
         .chain(lists)
         .collect()
