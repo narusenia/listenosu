@@ -6,7 +6,11 @@ A music player for listening to the songs in your osu!lazer library as backgroun
 
 > **This is an unofficial app.** It is not affiliated with or endorsed by osu! or ppy Pty Ltd.
 
-> **Under development.** Not released yet.
+## Download
+
+Get the latest zip for Windows 10 / 11 (64-bit) from [Releases](https://github.com/narusenia/listenosu/releases/latest), extract it, and run `listenosu.exe`. Keep `listenosu-helper.exe` and the other files next to it: the helper is what reads your lazer library. osu!lazer must be installed (it is found automatically, or you can pick its data folder in the settings).
+
+The app is not code-signed, so Windows SmartScreen may warn you the first time. macOS and Linux builds are not available yet.
 
 ## Features
 
@@ -17,10 +21,12 @@ A music player for listening to the songs in your osu!lazer library as backgroun
 - Audio spectrum
 - A UI styled after lazer's song select screen, and a mini player mode
 - Media keys, OS media controls, and a system tray icon
-- Discord Rich Presence and global hotkeys (both off by default)
+- Discord Rich Presence and global hotkeys. Discord needs an Application ID of your own from the Discord Developer Portal; the beatmap cover and page button are optional and off by default
+- Color themes (a few are bundled; put your own `*.toml` in `%APPDATA%\listenosu	hemes`)
+- Space plays and pauses while the window is focused; launching the app a second time brings the running window forward
 - English and Japanese
 
-Windows is the primary platform, followed by macOS. Linux is best-effort.
+Windows is the primary platform, followed by macOS. Linux is best-effort. Currently only Windows is released.
 
 ## Documentation
 

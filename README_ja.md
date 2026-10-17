@@ -6,7 +6,11 @@ osu!lazer のライブラリにある楽曲を、作業用 BGM として流し�
 
 > **これは非公式のアプリです。** osu! および ppy Pty Ltd とは関係がなく、承認も受けていません。
 
-> **開発中です。** まだ公開していません。
+## ダウンロード
+
+[Releases](https://github.com/narusenia/listenosu/releases/latest) から Windows 10 / 11（64 ビット）用の最新の zip を取得し、展開して `listenosu.exe` を実行します。`listenosu-helper.exe` などのファイルは、`listenosu.exe` の隣に置いたままにしてください。ヘルパーが lazer のライブラリを読みます。osu!lazer が必要です（自動で見つけます。設定でデータフォルダを選ぶこともできます）。
+
+コード署名をしていないため、初回は Windows の SmartScreen が警告を出すことがあります。macOS と Linux 向けはまだ公開していません。
 
 ## 特徴
 
@@ -17,10 +21,12 @@ osu!lazer のライブラリにある楽曲を、作業用 BGM として流し�
 - オーディオスペクトラム
 - lazer の選曲画面風の UI、ミニプレイヤー
 - メディアキー、OS のメディア表示、システムトレイ
-- Discord Rich Presence、グローバルホットキー（どちらも既定は OFF）
+- Discord Rich Presence、グローバルホットキー。Discord は、Discord Developer Portal で自分で作った Application ID が必要。譜面のカバー画像とページのボタンは任意で、既定は OFF
+- カラーテーマ（いくつか同梱。自作の `*.toml` は `%APPDATA%\listenosu	hemes` に置く）
+- ウィンドウにフォーカスがあるとき Space で再生 / 一時停止。2 つ目を起動すると、動いているウィンドウを前面に出す
 - 英語と日本語
 
-対応 OS は Windows を最優先とし、次に macOS、Linux は努力目標です。
+対応 OS は Windows を最優先とし、次に macOS、Linux は努力目標です。現在公開しているのは Windows のみです。
 
 ## ドキュメント
 
