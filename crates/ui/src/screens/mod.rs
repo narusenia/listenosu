@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use crate::theme::Theme;
 
 pub mod about;
@@ -13,7 +14,7 @@ fn header(ui: &mut egui::Ui, theme: &Theme, title: &str) -> bool {
         crate::components::controls::fix_row_height(ui);
         ui.label(theme.heading(title));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            back = ui.button("Back").clicked();
+            back = ui.button(t("common.back")).clicked();
         });
     });
     ui.add_space(theme.shape.padding);

@@ -45,10 +45,10 @@ pub fn language() -> Lang {
 pub fn t(key: &str) -> &'static str {
     let (en, ja) = tables();
     let table = if language() == Lang::Ja { ja } else { en };
-    table
-        .get(key)
-        .or_else(|| en.get(key))
-        .map_or_else(|| Box::leak(key.to_owned().into_boxed_str()) as &str, |s| s.as_str())
+    table.get(key).or_else(|| en.get(key)).map_or_else(
+        || Box::leak(key.to_owned().into_boxed_str()) as &str,
+        |s| s.as_str(),
+    )
 }
 
 /// `t` with `{name}` placeholders filled in.
@@ -74,7 +74,11 @@ fn parse(source: &str) -> Strings {
 
 fn flatten(prefix: &str, table: &toml::Table, out: &mut Strings) {
     for (key, value) in table {
-        let path = if prefix.is_empty() { key.clone() } else { format!("{prefix}.{key}") };
+        let path = if prefix.is_empty() {
+            key.clone()
+        } else {
+            format!("{prefix}.{key}")
+        };
         match value {
             toml::Value::String(s) => {
                 out.insert(path, s.clone());
@@ -107,7 +111,11 @@ fn system() -> Lang {
 }
 
 fn from_locale(name: &str) -> Lang {
-    if name.to_ascii_lowercase().starts_with("ja") { Lang::Ja } else { Lang::En }
+    if name.to_ascii_lowercase().starts_with("ja") {
+        Lang::Ja
+    } else {
+        Lang::En
+    }
 }
 
 #[cfg(test)]

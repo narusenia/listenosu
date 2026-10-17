@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{CentralPanel, Frame, Margin, Panel};
 
 use crate::backdrop::Backdrop;
@@ -79,7 +80,7 @@ pub fn main_screen(
                 changed |= dropdown_inline(
                     ui,
                     "view",
-                    "View",
+                    t("main.view"),
                     &mut state.view,
                     input.view_options,
                     Some(half),
@@ -87,7 +88,7 @@ pub fn main_screen(
                 changed |= dropdown_inline(
                     ui,
                     "sort",
-                    "Sort",
+                    t("main.sort"),
                     &mut state.sort,
                     input.sort_options,
                     Some(half),

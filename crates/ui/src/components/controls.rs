@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Color32, Rect, Response, Sense, TextEdit, vec2};
 
 use crate::theme::Theme;
@@ -7,7 +8,7 @@ pub fn search_bar(ui: &mut egui::Ui, theme: &Theme, text: &mut String, matches: 
     let margin = vec2(theme.shape.padding, theme.shape.padding * 0.75);
     let response = ui.add(
         TextEdit::singleline(text)
-            .hint_text("Search")
+            .hint_text(t("common.search"))
             .desired_width(ui.available_width())
             .margin(margin),
     );

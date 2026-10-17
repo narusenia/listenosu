@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::RichText;
 
 use super::song_rows::{RowEvent, song_rows};
@@ -38,7 +39,7 @@ impl PlaylistEditor {
     ) -> PlaylistEvent {
         let mut event = PlaylistEvent::default();
 
-        ui.label(theme.heading("Playlists"));
+        ui.label(theme.heading(t("playlists.title")));
         for (index, playlist) in playlists.iter().enumerate() {
             let label = format!("{}  ({})", playlist.name, playlist.songs.len());
             if ui
@@ -54,13 +55,16 @@ impl PlaylistEditor {
         ui.horizontal(|ui| {
             ui.add(
                 egui::TextEdit::singleline(&mut self.new_name)
-                    .hint_text("New playlist")
+                    .hint_text(t("playlists.new"))
                     .desired_width(ui.available_width() - theme.shape.padding * 6.0),
             );
             let name = self.new_name.trim();
             let taken = playlists.iter().any(|p| p.name == name);
             let can_add = !name.is_empty() && !taken;
-            if ui.add_enabled(can_add, egui::Button::new("Add")).clicked() {
+            if ui
+                .add_enabled(can_add, egui::Button::new(t("common.add")))
+                .clicked()
+            {
                 event.create = Some(name.to_owned());
                 self.new_name.clear();
             }
@@ -81,10 +85,13 @@ impl PlaylistEditor {
                 let trimmed = name.trim();
                 let valid = !trimmed.is_empty()
                     && (trimmed == playlist.name || !playlists.iter().any(|p| p.name == trimmed));
-                if ui.add_enabled(valid, egui::Button::new("OK")).clicked() {
+                if ui
+                    .add_enabled(valid, egui::Button::new(t("common.ok")))
+                    .clicked()
+                {
                     event.rename = Some(trimmed.to_owned());
                     self.rename = None;
-                } else if ui.button("Cancel").clicked() {
+                } else if ui.button(t("common.cancel")).clicked() {
                     self.rename = None;
                 }
             } else {
@@ -93,20 +100,22 @@ impl PlaylistEditor {
                         .font(fonts::bold(theme.text.body))
                         .color(theme.colors.text),
                 );
-                if ui.button("Rename").clicked() {
+                if ui.button(t("playlists.rename")).clicked() {
                     self.rename = Some(playlist.name.clone());
                 }
                 if self.confirm_delete {
                     if ui
-                        .button(RichText::new("Confirm delete").color(theme.colors.error))
+                        .button(
+                            RichText::new(t("playlists.confirm_delete")).color(theme.colors.error),
+                        )
                         .clicked()
                     {
                         event.delete = true;
                         self.confirm_delete = false;
-                    } else if ui.button("Cancel").clicked() {
+                    } else if ui.button(t("common.cancel")).clicked() {
                         self.confirm_delete = false;
                     }
-                } else if ui.button("Delete").clicked() {
+                } else if ui.button(t("playlists.delete")).clicked() {
                     self.confirm_delete = true;
                 }
             }
