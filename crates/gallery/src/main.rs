@@ -261,7 +261,12 @@ impl Gallery {
                     }
                 }
                 Page::About => {
-                    if about_screen(ui, &theme, env!("CARGO_PKG_VERSION")) {
+                    if about_screen(
+                        ui,
+                        &theme,
+                        env!("CARGO_PKG_VERSION"),
+                        &ui::icon::texture(ctx),
+                    ) {
                         self.page = None;
                     }
                 }

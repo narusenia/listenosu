@@ -5,18 +5,32 @@ use crate::fonts;
 use crate::theme::Theme;
 
 /// Returns true when Back was clicked.
-pub fn about_screen(ui: &mut egui::Ui, theme: &Theme, version: &str) -> bool {
+pub fn about_screen(
+    ui: &mut egui::Ui,
+    theme: &Theme,
+    version: &str,
+    icon: &egui::TextureHandle,
+) -> bool {
     let mut back = false;
     Frame::NONE
         .inner_margin(Margin::same(theme.shape.padding as i8))
         .show(ui, |ui| {
             back = header(ui, theme, "About");
-            ui.label(
-                RichText::new("listenosu!")
-                    .font(fonts::bold(theme.text.title))
-                    .color(theme.colors.text),
-            );
-            ui.label(RichText::new(format!("Version {version}")).color(theme.colors.text_dim));
+            ui.horizontal(|ui| {
+                ui.add(
+                    egui::Image::new(icon).fit_to_exact_size(egui::Vec2::splat(theme.icon_size())),
+                );
+                ui.vertical(|ui| {
+                    ui.label(
+                        RichText::new("listenosu!")
+                            .font(fonts::bold(theme.text.title))
+                            .color(theme.colors.text),
+                    );
+                    ui.label(
+                        RichText::new(format!("Version {version}")).color(theme.colors.text_dim),
+                    );
+                });
+            });
             ui.add_space(theme.shape.padding);
 
             // The project rules require saying it is unofficial wherever the name shows.

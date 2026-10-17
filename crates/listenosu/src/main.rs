@@ -44,7 +44,13 @@ fn viewport(config: &Config) -> egui::ViewportBuilder {
         )
     };
     // The app draws its own title bar.
+    let icon = ui::icon::large();
     let mut viewport = egui::ViewportBuilder::default()
+        .with_icon(egui::IconData {
+            rgba: icon.rgba,
+            width: icon.width,
+            height: icon.height,
+        })
         .with_decorations(false)
         .with_inner_size(saved.map_or(default_size, |g| at_least(g.size, min)))
         .with_min_inner_size(min);

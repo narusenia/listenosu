@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"] }
 egui = { version = "0.37.0", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.8"

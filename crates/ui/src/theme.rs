@@ -166,6 +166,11 @@ impl Theme {
     }
 
     /// Section heading: bold, heading size and full-brightness text.
+    /// Side of the app icon on the About screen.
+    pub fn icon_size(&self) -> f32 {
+        self.text.title * 3.0
+    }
+
     /// Width of a `m:ss` label.
     pub fn time_width(&self) -> f32 {
         self.text.small * 3.5

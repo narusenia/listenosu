@@ -3,10 +3,6 @@ use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, 
 
 use crate::media::Command;
 
-const ICON_SIZE: u32 = 32;
-/// The theme's primary color; the tray has no `Theme`, so the one value is copied here.
-const ICON_RGB: [u8; 3] = [0x59, 0x33, 0xCC];
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TrayEvent {
     /// Bring the window back.
@@ -22,7 +18,11 @@ pub struct Tray {
 }
 
 impl Tray {
-    pub fn new(handler: impl Fn(TrayEvent) + Send + Sync + 'static) -> Result<Self, String> {
+    /// `icon` is straight RGBA pixels, `width` x `height`.
+    pub fn new(
+        icon: (Vec<u8>, u32, u32),
+        handler: impl Fn(TrayEvent) + Send + Sync + 'static,
+    ) -> Result<Self, String> {
         let show = MenuItem::new("Show", true, None);
         let toggle = MenuItem::new("Play / Pause", true, None);
         let next = MenuItem::new("Next", true, None);
@@ -66,34 +66,12 @@ impl Tray {
         }));
 
         let icon = TrayIconBuilder::new()
-            .with_icon(icon()?)
+            .with_icon(Icon::from_rgba(icon.0, icon.1, icon.2).map_err(|e| e.to_string())?)
             .with_tooltip("listenosu!")
             .with_menu(Box::new(menu))
             .with_menu_on_left_click(false)
             .build()
             .map_err(|e| e.to_string())?;
         Ok(Self { _icon: icon })
-    }
-}
-
-/// A filled circle in the primary color, with soft edges.
-fn icon() -> Result<Icon, String> {
-    let n = ICON_SIZE as f32;
-    let mut rgba = Vec::with_capacity((ICON_SIZE * ICON_SIZE * 4) as usize);
-    for y in 0..ICON_SIZE {
-        for x in 0..ICON_SIZE {
-            let (dx, dy) = (x as f32 + 0.5 - n / 2.0, y as f32 + 0.5 - n / 2.0);
-            let edge = (n / 2.0 - 1.0 - (dx * dx + dy * dy).sqrt()).clamp(0.0, 1.0);
-            rgba.extend_from_slice(&[ICON_RGB[0], ICON_RGB[1], ICON_RGB[2], (edge * 255.0) as u8]);
-        }
-    }
-    Icon::from_rgba(rgba, ICON_SIZE, ICON_SIZE).map_err(|e| e.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn the_icon_builds() {
-        assert!(super::icon().is_ok());
     }
 }
