@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Frame, Margin, RichText, ScrollArea};
 
 use super::header;
@@ -5,12 +6,19 @@ use crate::components::controls::dropdown_inline;
 use crate::components::settings::{KeyBindChange, keybind, setting_row, toggle};
 use crate::theme::Theme;
 
-pub const LANGUAGES: [&str; 3] = ["System", "English", "日本語"];
+/// Language names are shown in their own language, except the first entry, which follows the OS.
+pub fn languages() -> [String; 3] {
+    [
+        t("settings.language_system").to_owned(),
+        "English".to_owned(),
+        "日本語".to_owned(),
+    ]
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsState {
     pub data_folder: String,
-    /// Index into `LANGUAGES`.
+    /// Index into `languages()`.
     pub language: usize,
     /// Show romanized title and artist instead of the original language.
     pub romanized: bool,
@@ -54,80 +62,70 @@ pub fn settings_screen(
     Frame::NONE
         .inner_margin(Margin::same(theme.shape.padding as i8))
         .show(ui, |ui| {
-            event.back = header(ui, theme, "Settings");
+            event.back = header(ui, theme, t("settings.title"));
             ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                section(ui, theme, "Library");
-                setting_row(ui, theme, "osu!lazer data folder", |ui| {
-                    event.choose_folder = ui.button("Browse…").clicked();
+                section(ui, theme, t("settings.library"));
+                setting_row(ui, theme, t("settings.data_folder"), |ui| {
+                    event.choose_folder = ui.button(t("settings.browse")).clicked();
                     ui.label(RichText::new(&state.data_folder).color(theme.colors.text_dim));
                 });
 
-                section(ui, theme, "Display");
-                setting_row(ui, theme, "Language", |ui| {
-                    let options = LANGUAGES.map(String::from);
+                section(ui, theme, t("settings.display"));
+                setting_row(ui, theme, t("settings.language"), |ui| {
+                    let options = languages();
                     dropdown_inline(ui, "language", "", &mut state.language, &options, None);
                 });
-                setting_row(ui, theme, "Show romanized titles and artists", |ui| {
+                setting_row(ui, theme, t("settings.romanized"), |ui| {
                     toggle(ui, theme, &mut state.romanized);
                 });
-                setting_row(
-                    ui,
-                    theme,
-                    "Group songs with the same title and artist",
-                    |ui| {
-                        toggle(ui, theme, &mut state.group_same);
-                    },
-                );
-                setting_row(ui, theme, "Audio spectrum", |ui| {
+                setting_row(ui, theme, t("settings.group_songs"), |ui| {
+                    toggle(ui, theme, &mut state.group_same);
+                });
+                setting_row(ui, theme, t("settings.spectrum"), |ui| {
                     toggle(ui, theme, &mut state.spectrum);
                 });
                 ui.add_enabled_ui(state.spectrum, |ui| {
-                    setting_row(ui, theme, "Spectrum bars", |ui| {
+                    setting_row(ui, theme, t("settings.spectrum_bars"), |ui| {
                         ui.add(egui::Slider::new(&mut state.spectrum_bars, 16..=128).step_by(8.0));
                     });
-                    setting_row(ui, theme, "Spectrum fall speed", |ui| {
+                    setting_row(ui, theme, t("settings.spectrum_decay"), |ui| {
                         ui.add(
                             egui::Slider::new(&mut state.spectrum_decay, 0.4..=4.0).step_by(0.2),
                         );
                     });
-                    setting_row(ui, theme, "Spectrum height", |ui| {
+                    setting_row(ui, theme, t("settings.spectrum_height"), |ui| {
                         ui.add(
                             egui::Slider::new(&mut state.spectrum_height, 24.0..=160.0)
                                 .step_by(8.0),
                         );
                     });
                 });
-                setting_row(ui, theme, "Backdrop blur", |ui| {
+                setting_row(ui, theme, t("settings.backdrop_blur"), |ui| {
                     ui.add(egui::Slider::new(&mut state.backdrop_blur, 4.0..=48.0).step_by(1.0));
                 });
-                setting_row(ui, theme, "Backdrop dimming", |ui| {
+                setting_row(ui, theme, t("settings.backdrop_dim"), |ui| {
                     ui.add(egui::Slider::new(&mut state.backdrop_dim, 0.0..=1.0).step_by(0.05));
                 });
 
-                section(ui, theme, "Playback");
-                setting_row(ui, theme, "Crossfade (seconds, 0 = off)", |ui| {
+                section(ui, theme, t("settings.playback"));
+                setting_row(ui, theme, t("settings.crossfade"), |ui| {
                     ui.add(egui::Slider::new(&mut state.crossfade_secs, 0.0..=10.0).step_by(0.5));
                 });
 
-                section(ui, theme, "Window");
-                setting_row(
-                    ui,
-                    theme,
-                    "Hide to the tray when the window is closed",
-                    |ui| {
-                        toggle(ui, theme, &mut state.tray_on_close);
-                    },
-                );
-                setting_row(ui, theme, "Keep the mini player on top", |ui| {
+                section(ui, theme, t("settings.window"));
+                setting_row(ui, theme, t("settings.tray_on_close"), |ui| {
+                    toggle(ui, theme, &mut state.tray_on_close);
+                });
+                setting_row(ui, theme, t("settings.mini_on_top"), |ui| {
                     toggle(ui, theme, &mut state.mini_on_top);
                 });
 
-                section(ui, theme, "Integrations");
-                setting_row(ui, theme, "Global hotkeys", |ui| {
+                section(ui, theme, t("settings.integrations"));
+                setting_row(ui, theme, t("settings.hotkeys"), |ui| {
                     toggle(ui, theme, &mut state.hotkeys);
                 });
                 ui.add_enabled_ui(state.hotkeys, |ui| {
-                    setting_row(ui, theme, "Play / pause hotkey", |ui| {
+                    setting_row(ui, theme, t("settings.hotkey_play_pause"), |ui| {
                         let current = state.hotkey_play_pause.as_deref();
                         match keybind(ui, theme, current, &mut state.capturing) {
                             Some(KeyBindChange::Set(binding)) => {
@@ -138,21 +136,21 @@ pub fn settings_screen(
                         }
                     });
                 });
-                setting_row(ui, theme, "Discord Rich Presence", |ui| {
+                setting_row(ui, theme, t("settings.discord"), |ui| {
                     toggle(ui, theme, &mut state.discord);
                 });
                 ui.add_enabled_ui(state.discord, |ui| {
-                    setting_row(ui, theme, "Discord Application ID", |ui| {
+                    setting_row(ui, theme, t("settings.discord_app_id"), |ui| {
                         ui.add(
                             egui::TextEdit::singleline(&mut state.discord_app_id)
                                 .desired_width(theme.shape.list_width / 2.0)
-                                .hint_text("Application ID"),
+                                .hint_text(t("settings.application_id")),
                         );
                     });
                 });
 
-                section(ui, theme, "Updates");
-                setting_row(ui, theme, "Check for updates at startup", |ui| {
+                section(ui, theme, t("settings.updates"));
+                setting_row(ui, theme, t("settings.check_updates"), |ui| {
                     toggle(ui, theme, &mut state.check_updates);
                 });
             });

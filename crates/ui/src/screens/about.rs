@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Frame, Margin, RichText};
 
 use super::header;
@@ -15,7 +16,7 @@ pub fn about_screen(
     Frame::NONE
         .inner_margin(Margin::same(theme.shape.padding as i8))
         .show(ui, |ui| {
-            back = header(ui, theme, "About");
+            back = header(ui, theme, t("about.title"));
             ui.horizontal(|ui| {
                 ui.add(
                     egui::Image::new(icon).fit_to_exact_size(egui::Vec2::splat(theme.icon_size())),
@@ -27,29 +28,27 @@ pub fn about_screen(
                             .color(theme.colors.text),
                     );
                     ui.label(
-                        RichText::new(format!("Version {version}")).color(theme.colors.text_dim),
+                        RichText::new(crate::i18n::tr("about.version", &[("version", version)]))
+                            .color(theme.colors.text_dim),
                     );
                 });
             });
             ui.add_space(theme.shape.padding);
 
             // The project rules require saying it is unofficial wherever the name shows.
-            ui.label(
-                RichText::new("Unofficial. Not affiliated with or endorsed by ppy or osu!.")
-                    .color(theme.colors.accent),
-            );
+            ui.label(RichText::new(t("about.unofficial")).color(theme.colors.accent));
             ui.label(
                 "A music player for the songs in your osu!lazer library. \
                  It only reads the library and never writes to it.",
             );
-            ui.label("The osu! logo and the Torus font are not included.");
+            ui.label(t("about.no_logo"));
 
             ui.add_space(theme.shape.padding);
-            ui.label(theme.heading("Licenses"));
-            ui.label("listenosu!: MIT License");
-            ui.label("Nunito: SIL Open Font License 1.1");
-            ui.label("Noto Sans JP: SIL Open Font License 1.1");
-            ui.label("Lucide icons: ISC License");
+            ui.label(theme.heading(t("about.licenses")));
+            ui.label(t("about.license_app"));
+            ui.label(t("about.license_nunito"));
+            ui.label(t("about.license_noto"));
+            ui.label(t("about.license_lucide"));
         });
     back
 }

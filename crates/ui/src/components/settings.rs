@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{
     Align, CornerRadius, Event, Frame, Key, Layout, Margin, Modifiers, Response, Sense, vec2,
 };
@@ -74,9 +75,9 @@ pub fn keybind(
     capturing: &mut bool,
 ) -> Option<KeyBindChange> {
     let text = if *capturing {
-        "Press a key…"
+        t("common.press_a_key")
     } else {
-        current.unwrap_or("Unassigned")
+        current.unwrap_or(t("common.unassigned"))
     };
     let color = if *capturing {
         theme.colors.accent

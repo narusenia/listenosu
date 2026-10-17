@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::ScrollArea;
 
 use super::song_card::{CardState, song_card};
@@ -70,17 +71,17 @@ pub fn song_list(
 fn song_menu(response: &egui::Response, song: &SongView, playlists: &[String]) -> Option<SongMenu> {
     let mut choice = None;
     response.context_menu(|ui| {
-        if ui.button("Play").clicked() {
+        if ui.button(t("song_menu.play")).clicked() {
             choice = Some(SongMenu::Play);
         }
-        if ui.button("Play next").clicked() {
+        if ui.button(t("song_menu.play_next")).clicked() {
             choice = Some(SongMenu::PlayNext);
         }
-        if ui.button("Add to queue").clicked() {
+        if ui.button(t("song_menu.add_to_queue")).clicked() {
             choice = Some(SongMenu::AddToQueue);
         }
         ui.add_enabled_ui(!playlists.is_empty(), |ui| {
-            ui.menu_button("Add to playlist", |ui| {
+            ui.menu_button(t("song_menu.add_to_playlist"), |ui| {
                 for (index, name) in playlists.iter().enumerate() {
                     if ui.button(name).clicked() {
                         choice = Some(SongMenu::AddToPlaylist(index));
@@ -89,10 +90,10 @@ fn song_menu(response: &egui::Response, song: &SongView, playlists: &[String]) -
             });
         });
         ui.separator();
-        if ui.button("Show in folder").clicked() {
+        if ui.button(t("song_menu.show_in_folder")).clicked() {
             choice = Some(SongMenu::ShowInFolder);
         }
-        if ui.button("Copy title").clicked() {
+        if ui.button(t("song_menu.copy_title")).clicked() {
             ui.ctx().copy_text(song.title.clone());
         }
         // Any choice closes the menu; the submenu does not close it on its own.

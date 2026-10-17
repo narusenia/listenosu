@@ -5,6 +5,7 @@ use ui::Theme;
 use ui::components::notice::{NoticeKind, banner};
 use ui::components::playlist_editor::{PlaylistEditor, PlaylistEvent, PlaylistView};
 use ui::components::song_rows::{RowEvent, song_rows};
+use ui::i18n::{t, tr};
 use ui::model::SongView;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -54,7 +55,10 @@ impl Side {
         }
         let was_open = self.open;
         ui.horizontal(|ui| {
-            for (tab, label) in [(Tab::Queue, "Queue"), (Tab::Playlists, "Playlists")] {
+            for (tab, label) in [
+                (Tab::Queue, t("side.queue")),
+                (Tab::Playlists, t("side.playlists")),
+            ] {
                 let shown = self.open && self.tab == tab;
                 // Clicking the tab that is showing collapses the panel.
                 if ui.selectable_label(shown, label).clicked() {
@@ -89,12 +93,15 @@ impl Side {
         out: &mut Vec<Action>,
     ) {
         ui.horizontal(|ui| {
-            ui.label(theme.heading(format!("Up next ({})", self.queue_views.len())));
-            if ui.button("Clear").clicked() {
+            ui.label(theme.heading(tr(
+                "side.up_next",
+                &[("count", &self.queue_views.len().to_string())],
+            )));
+            if ui.button(t("common.clear")).clicked() {
                 out.push(Action::ClearQueue);
             }
             if ui
-                .add_enabled(input.can_add, egui::Button::new("Add selected song"))
+                .add_enabled(input.can_add, egui::Button::new(t("side.add_selected")))
                 .clicked()
             {
                 out.push(Action::AddToQueue);
@@ -119,7 +126,7 @@ impl Side {
             && ui
                 .add_enabled(
                     input.can_add,
-                    egui::Button::new("Add selected song to this playlist"),
+                    egui::Button::new(t("side.add_selected_to_playlist")),
                 )
                 .clicked()
         {

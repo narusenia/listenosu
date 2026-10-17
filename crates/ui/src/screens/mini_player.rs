@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Align, Frame, Label, Layout, Margin, RichText, UiBuilder, pos2};
 
 use crate::backdrop::Backdrop;
@@ -50,7 +51,7 @@ pub fn mini_player(
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     event.expand = icon_button(ui, theme, Icon::Full, theme.text.body * 1.6)
-                        .on_hover_text("Full window")
+                        .on_hover_text(t("playbar.full_window"))
                         .clicked();
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         let Some(song) = song else { return };

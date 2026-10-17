@@ -6,9 +6,9 @@ A music player for listening to the songs in your osu!lazer library as backgroun
 
 > **This is an unofficial app.** It is not affiliated with or endorsed by osu! or ppy Pty Ltd.
 
-> **Under development.** Nothing is usable yet.
+> **Under development.** Not released yet.
 
-## Features (planned)
+## Features
 
 - Works while osu!lazer is running (lazer's data is opened read-only and never modified)
 - A song list with duplicate audio merged into one entry, full-text search, and sorting
@@ -41,4 +41,9 @@ On Windows, MSVC Build Tools ("Desktop development with C++") are required. Run 
 
 ## License
 
-[MIT](LICENSE)
+listenosu! is under the [MIT License](LICENSE). It bundles these fonts and icons:
+
+- Nunito and Noto Sans JP: SIL Open Font License 1.1
+- Lucide icons: ISC License
+
+The osu! logo and the Torus font are not included. "osu!" is a name of ppy Pty Ltd.

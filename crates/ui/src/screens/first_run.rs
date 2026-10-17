@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Align2, CornerRadius, Frame, Margin, RichText, vec2};
 
 use crate::theme::Theme;
@@ -26,7 +27,7 @@ pub fn first_run_screen(ui: &mut egui::Ui, theme: &Theme, searched: &[String]) -
                 .inner_margin(Margin::same(padding as i8))
                 .show(ui, |ui| {
                     ui.set_width(card_width - padding * 2.0);
-                    ui.label(theme.heading("osu!lazer was not found"));
+                    ui.label(theme.heading(t("first_run.title")));
                     ui.label(
                         RichText::new(
                             "listenosu! plays the songs in your osu!lazer library. \
@@ -36,7 +37,7 @@ pub fn first_run_screen(ui: &mut egui::Ui, theme: &Theme, searched: &[String]) -
                     );
                     if !searched.is_empty() {
                         ui.add_space(theme.shape.spacing);
-                        ui.label(RichText::new("Looked in:").size(theme.text.small));
+                        ui.label(RichText::new(t("first_run.looked_in")).size(theme.text.small));
                         for path in searched {
                             ui.label(
                                 RichText::new(path)
@@ -47,8 +48,8 @@ pub fn first_run_screen(ui: &mut egui::Ui, theme: &Theme, searched: &[String]) -
                     }
                     ui.add_space(theme.shape.padding);
                     ui.horizontal(|ui| {
-                        event.choose_folder = ui.button("Choose folder…").clicked();
-                        event.retry = ui.button("Try again").clicked();
+                        event.choose_folder = ui.button(t("first_run.choose_folder")).clicked();
+                        event.retry = ui.button(t("first_run.retry")).clicked();
                     });
                 });
         });

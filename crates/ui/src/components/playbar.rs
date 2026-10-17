@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use egui::{Frame, Margin, RichText};
 
 use super::controls::{seek_bar, slider_bar};
@@ -50,12 +51,12 @@ pub fn playbar(
 
                 event.toggle_shuffle =
                     icon_toggle(ui, theme, Icon::Shuffle, button_size, player.shuffle)
-                        .on_hover_text("Shuffle")
+                        .on_hover_text(t("playbar.shuffle"))
                         .clicked();
                 let (repeat_icon, repeat_tip) = match player.repeat {
-                    Repeat::Off => (Icon::Repeat, "Repeat: off"),
-                    Repeat::All => (Icon::Repeat, "Repeat: all"),
-                    Repeat::One => (Icon::RepeatOne, "Repeat: one"),
+                    Repeat::Off => (Icon::Repeat, t("playbar.repeat_off")),
+                    Repeat::All => (Icon::Repeat, t("playbar.repeat_all")),
+                    Repeat::One => (Icon::RepeatOne, t("playbar.repeat_one")),
                 };
                 event.cycle_repeat = icon_toggle(
                     ui,
@@ -96,10 +97,10 @@ pub fn playbar(
 
                 event.toggle_list =
                     icon_toggle(ui, theme, Icon::SongList, button_size, !list_hidden)
-                        .on_hover_text("Song list")
+                        .on_hover_text(t("playbar.song_list"))
                         .clicked();
                 event.toggle_mini = icon_button(ui, theme, Icon::Mini, button_size)
-                    .on_hover_text("Mini player")
+                    .on_hover_text(t("playbar.mini_player"))
                     .clicked();
             });
         });

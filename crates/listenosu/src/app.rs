@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
+use ui::i18n::{self, t, tr};
 
 use eframe::egui;
 use library::Song;
@@ -32,7 +33,7 @@ use ui::screens::settings::{SettingsState, settings_screen};
 use crate::backdrop_loader::{BackdropLoader, Decoded};
 use crate::catalog::Catalog;
 use crate::config::{Config, Geometry, LastSession};
-use crate::listing::{self, SORT_OPTIONS, song_view};
+use crate::listing::{self, song_view};
 use crate::side::{Action, Side, SideInput};
 
 pub const FULL_SIZE: [f32; 2] = [1400.0, 860.0];
@@ -148,7 +149,7 @@ impl App {
             visible: Vec::new(),
             views: Vec::new(),
             view_options: Vec::new(),
-            sort_options: SORT_OPTIONS.map(String::from).to_vec(),
+            sort_options: listing::sort_options(),
             playing_row: None,
             now_playing: None,
             now_view: None,
@@ -211,7 +212,7 @@ impl App {
             }
             Err(why) => self.toasts.push(
                 NoticeKind::Error,
-                format!("Audio output is not available: {why}"),
+                tr("toast.audio_unavailable", &[("why", &why.to_string())]),
                 self.theme.motion.toast_seconds,
             ),
         }
@@ -345,12 +346,12 @@ impl App {
             [] => {}
             [one] => self.toasts.push(
                 NoticeKind::Warning,
-                format!("Skipped (file not found): {one}"),
+                tr("toast.skipped_one", &[("name", &one.to_string())]),
                 seconds,
             ),
             many => self.toasts.push(
                 NoticeKind::Warning,
-                format!("Skipped {} songs whose files were not found", many.len()),
+                tr("toast.skipped_many", &[("count", &many.len().to_string())]),
                 seconds,
             ),
         }
@@ -667,9 +668,9 @@ impl App {
         };
         let (added, name) = (playlist.add(&song), playlist.name.clone());
         let text = if added {
-            format!("Added to {name}")
+            tr("toast.added_to", &[("name", &name)])
         } else {
-            format!("Already in {name}")
+            tr("toast.already_in", &[("name", &name)])
         };
         self.toasts
             .push(NoticeKind::Info, text, self.theme.motion.toast_seconds);
@@ -747,7 +748,7 @@ impl App {
             if self.playlists.save(&dirs.playlists_file()).is_err() {
                 self.toasts.push(
                     NoticeKind::Error,
-                    "Could not save the playlists.",
+                    t("toast.save_playlists_failed"),
                     self.theme.motion.toast_seconds,
                 );
             }
@@ -809,6 +810,7 @@ impl App {
 
     fn apply_settings(&mut self, ctx: &egui::Context) {
         let (romanized_before, group_before) = (self.config.romanized, self.config.group_same);
+        let language_before = self.config.language;
         let blur_before = self.config.backdrop_blur;
         self.config.apply_settings(&self.settings);
         self.apply_theme_settings();
@@ -819,6 +821,11 @@ impl App {
         }
         if let Some(player) = &mut self.player {
             player.set_crossfade(Duration::from_secs_f32(self.config.crossfade_secs));
+        }
+        if language_before != self.config.language {
+            i18n::set_language(i18n::Lang::from_setting(self.config.language));
+            self.sort_options = listing::sort_options();
+            self.rebuild_list();
         }
         if group_before != self.config.group_same {
             self.rebuild_list();
@@ -868,7 +875,7 @@ impl App {
         // Remember the attempt even if it fails, so a taken combination is reported once.
         self.hotkey_active = wanted.clone();
         if let Err(error) = hotkey.set(wanted.as_deref()) {
-            let text = format!("Could not register the hotkey: {error}");
+            let text = tr("toast.hotkey_failed", &[("error", &error.to_string())]);
             self.toasts
                 .push(NoticeKind::Warning, text, self.theme.motion.toast_seconds);
         }
@@ -1017,7 +1024,7 @@ impl App {
         if event.choose_folder {
             self.toasts.push(
                 NoticeKind::Info,
-                "Choosing a folder is not available yet. Set the folder in settings.json.",
+                t("toast.folder_unavailable"),
                 self.theme.motion.toast_seconds,
             );
         }
@@ -1037,7 +1044,7 @@ impl App {
                     if event.choose_folder {
                         self.toasts.push(
                             NoticeKind::Info,
-                            "Choosing a folder is not available yet. Set the folder in settings.json.",
+                            t("toast.folder_unavailable"),
                             self.theme.motion.toast_seconds,
                         );
                     }

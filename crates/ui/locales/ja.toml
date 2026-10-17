@@ -1,0 +1,118 @@
+[common]
+back = "戻る"
+cancel = "キャンセル"
+ok = "OK"
+add = "追加"
+clear = "クリア"
+search = "検索"
+file_not_found = "ファイルが見つかりません"
+press_a_key = "キーを押してください…"
+unassigned = "未割り当て"
+
+[playbar]
+shuffle = "シャッフル"
+repeat_off = "リピート：オフ"
+repeat_all = "リピート：全曲"
+repeat_one = "リピート：1 曲"
+song_list = "曲一覧"
+mini_player = "ミニプレイヤー"
+full_window = "通常のウィンドウ"
+
+[song_menu]
+play = "再生"
+play_next = "次に再生"
+add_to_queue = "キューに追加"
+add_to_playlist = "プレイリストに追加"
+show_in_folder = "フォルダで表示"
+copy_title = "曲名をコピー"
+
+[playlists]
+title = "プレイリスト"
+new = "新しいプレイリスト"
+rename = "名前を変更"
+delete = "削除"
+confirm_delete = "削除を確定"
+
+[side]
+queue = "キュー"
+playlists = "プレイリスト"
+up_next = "次に再生（{count}）"
+add_selected = "選択中の曲を追加"
+add_selected_to_playlist = "選択中の曲をこのプレイリストに追加"
+
+[main]
+view = "表示"
+sort = "並べ替え"
+all_songs = "すべての曲"
+collection = "コレクション：{name}"
+playlist = "プレイリスト：{name}"
+
+[sort]
+title = "曲名"
+artist = "アーティスト"
+date_added = "追加日"
+length = "長さ"
+bpm = "BPM"
+last_played = "最後に再生した日"
+
+[about]
+title = "About"
+version = "バージョン {version}"
+unofficial = "非公式です。ppy および osu! とは無関係で、承認も受けていません。"
+no_logo = "osu! のロゴと Torus フォントは含まれていません。"
+licenses = "ライセンス"
+license_app = "listenosu!：MIT License"
+license_nunito = "Nunito：SIL Open Font License 1.1"
+license_noto = "Noto Sans JP：SIL Open Font License 1.1"
+license_lucide = "Lucide アイコン：ISC License"
+
+[first_run]
+title = "osu!lazer が見つかりません"
+looked_in = "探した場所："
+choose_folder = "フォルダを選ぶ…"
+retry = "もう一度探す"
+
+[settings]
+title = "設定"
+library = "ライブラリ"
+data_folder = "osu!lazer のデータフォルダ"
+browse = "参照…"
+display = "表示"
+language = "言語"
+language_system = "システム"
+romanized = "曲名とアーティストをローマ字で表示"
+group_songs = "曲名とアーティストが同じ曲をまとめる"
+spectrum = "スペクトラム"
+spectrum_bars = "スペクトラムの本数"
+spectrum_decay = "スペクトラムの落ちる速さ"
+spectrum_height = "スペクトラムの高さ"
+backdrop_blur = "背景のぼかし"
+backdrop_dim = "背景の暗さ"
+playback = "再生"
+crossfade = "クロスフェード（秒、0 でオフ）"
+window = "ウィンドウ"
+tray_on_close = "閉じたときにトレイへ隠す"
+mini_on_top = "ミニプレイヤーを常に最前面にする"
+integrations = "連携"
+hotkeys = "グローバルホットキー"
+hotkey_play_pause = "再生 / 一時停止のホットキー"
+discord = "Discord Rich Presence"
+discord_app_id = "Discord の Application ID"
+application_id = "Application ID"
+updates = "更新"
+check_updates = "起動時に更新を確認する"
+
+[toast]
+audio_unavailable = "音声出力を使えません：{why}"
+skipped_one = "飛ばしました（ファイルが見つかりません）：{name}"
+skipped_many = "ファイルが見つからない {count} 曲を飛ばしました"
+added_to = "{name} に追加しました"
+already_in = "{name} にはすでにあります"
+save_playlists_failed = "プレイリストを保存できませんでした。"
+hotkey_failed = "ホットキーを登録できませんでした：{error}"
+folder_unavailable = "フォルダ選択はまだ使えません。settings.json でフォルダを指定してください。"
+
+[problem]
+helper_missing = "ライブラリのヘルパーが見つかりません。前回のライブラリを表示しています。"
+read_failed = "osu!lazer のライブラリを読めませんでした（{message}）。前回のライブラリを表示しています。"
+helper_stopped = "ライブラリのヘルパーが止まりました（{reason}）。前回のライブラリを表示しています。"

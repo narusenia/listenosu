@@ -1,3 +1,4 @@
+use crate::i18n::t;
 use std::sync::Arc;
 
 use egui::text::{LayoutJob, TextWrapping};
@@ -66,7 +67,7 @@ pub fn song_card(
     };
     let small = FontId::proportional(theme.text.small);
     let meta_text = if song.missing {
-        "File not found".to_owned()
+        t("common.file_not_found").to_owned()
     } else {
         format!(
             "{:.0} BPM · {}:{:02}",
