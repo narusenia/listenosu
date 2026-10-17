@@ -19,6 +19,7 @@ osu!lazer のライブラリにある楽曲を流し聴きするための、非�
 
 - ツールのバージョンは `mise.toml` で管理する。`mise install` で入れる
 - ビルド：`cargo build --workspace`
+- release で動かすには、ヘルパーを本体の隣に置く：`cargo build --release` のあと PowerShell で `helper\publish.ps1`（self-contained + trim で publish し、`target\release` にコピーする。`cargo clean` で消えるので、そのたびに実行する）。debug ビルドは `dotnet build helper/Helper -c Release` の出力を自動で見つける
 - 検査：`cargo fmt --all --check` と `cargo clippy --workspace --all-targets -- -D warnings`
 - Windows では MSVC Build Tools が必要。Git Bash から `cargo` を実行すると、coreutils の `link` が MSVC の `link.exe` より先に見つかってビルドに失敗する。PowerShell から実行する
 
