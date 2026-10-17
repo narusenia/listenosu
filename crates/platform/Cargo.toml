@@ -7,3 +7,4 @@ repository.workspace = true
 
 [dependencies]
 souvlaki = "0.8.3"
+tray-icon = "0.26.1"

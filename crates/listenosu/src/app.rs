@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
 use eframe::egui;
@@ -6,6 +9,7 @@ use library::Song;
 use library::playlist::Playlists;
 use library::store::AppDirs;
 use platform::media::{Command, Media, Track};
+use platform::tray::{Tray, TrayEvent};
 use player::{Event, Player, Repeat, Status};
 use ui::Theme;
 use ui::backdrop::Backdrop;
@@ -88,6 +92,13 @@ pub struct App {
     settle: u8,
     /// None when the OS refuses media controls; the app works without them.
     media: Option<Media>,
+    /// None when the tray cannot be created; closing then quits instead of hiding.
+    tray: Option<Tray>,
+    tray_commands: Receiver<Command>,
+    /// Set by the tray's Quit so the close request that follows is not turned into a hide.
+    quitting: Arc<AtomicBool>,
+    /// The window is hidden in the tray; the spectrum is not analyzed meanwhile.
+    hidden: Arc<AtomicBool>,
 }
 
 impl App {
@@ -98,6 +109,8 @@ impl App {
             .map(|d| Playlists::load(&d.playlists_file()))
             .unwrap_or_default();
         let side_open = config.side_open;
+        let (tray_tx, tray_commands) = channel();
+        let (quitting, hidden) = (Arc::default(), Arc::default());
         let mut app = Self {
             theme: Theme::lazer(),
             theme_applied: false,
@@ -134,7 +147,12 @@ impl App {
             seek_hold: None,
             settle: SETTLE_FRAMES,
             media: open_media(cc),
+            tray: None,
+            tray_commands,
+            quitting,
+            hidden,
         };
+        app.tray = open_tray(&cc.egui_ctx, tray_tx, &app.quitting, &app.hidden);
         app.side.open = side_open;
         app.open_catalog();
         app
@@ -386,8 +404,9 @@ impl App {
 
     /// Smoothed bar levels. Nothing is analyzed while the window is minimized or the setting is off.
     fn spectrum(&mut self, ctx: &egui::Context, dt: f32) -> Vec<f32> {
-        let visible =
-            self.config.spectrum && !ctx.input(|i| i.viewport().minimized.unwrap_or(false));
+        let visible = self.config.spectrum
+            && !self.hidden.load(Ordering::SeqCst)
+            && !ctx.input(|i| i.viewport().minimized.unwrap_or(false));
         let bars = self.theme.spectrum.bars;
         let raw = match &mut self.player {
             Some(player) => fit(&player.spectrum(visible), bars),
@@ -459,10 +478,10 @@ impl App {
         }
     }
 
-    /// Applies media keys and the OS media overlay, then reports the state back to the OS.
+    /// Applies media keys, tray menu commands and the OS media overlay, then reports the state back.
     fn sync_media(&mut self) {
-        let Some(media) = &self.media else { return };
-        let commands = media.poll();
+        let mut commands: Vec<Command> = self.tray_commands.try_iter().collect();
+        commands.extend(self.media.as_ref().map(Media::poll).unwrap_or_default());
         let mut status = self.player.as_ref().map(Player::status).unwrap_or_default();
         for command in commands {
             let playing = status.index.is_some() && !status.paused;
@@ -985,6 +1004,14 @@ impl eframe::App for App {
 
         if ctx.input(|i| i.viewport().close_requested()) {
             self.save_config(true);
+            if self.config.tray_on_close
+                && self.tray.is_some()
+                && !self.quitting.load(Ordering::SeqCst)
+            {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                self.hidden.store(true, Ordering::SeqCst);
+            }
         }
 
         let song = self
@@ -1023,6 +1050,34 @@ impl eframe::App for App {
         });
         ctx.request_repaint_after(Duration::from_millis(if playing { 16 } else { 250 }));
     }
+}
+
+fn open_tray(
+    ctx: &egui::Context,
+    commands: Sender<Command>,
+    quitting: &Arc<AtomicBool>,
+    hidden: &Arc<AtomicBool>,
+) -> Option<Tray> {
+    let (ctx, quitting, hidden) = (ctx.clone(), quitting.clone(), hidden.clone());
+    Tray::new(move |event| {
+        match event {
+            TrayEvent::Show => {
+                hidden.store(false, Ordering::SeqCst);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+            }
+            TrayEvent::Quit => {
+                quitting.store(true, Ordering::SeqCst);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+            TrayEvent::Command(command) => {
+                let _ = commands.send(command);
+            }
+        }
+        ctx.request_repaint();
+    })
+    .ok()
 }
 
 fn open_media(cc: &eframe::CreationContext<'_>) -> Option<Media> {
