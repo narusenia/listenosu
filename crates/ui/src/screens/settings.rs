@@ -1,7 +1,7 @@
 use egui::{Frame, Margin, RichText, ScrollArea};
 
 use super::header;
-use crate::components::controls::dropdown;
+use crate::components::controls::dropdown_inline;
 use crate::components::settings::{KeyBindChange, keybind, setting_row, toggle};
 use crate::theme::Theme;
 
@@ -65,7 +65,7 @@ pub fn settings_screen(
                 section(ui, theme, "Display");
                 setting_row(ui, theme, "Language", |ui| {
                     let options = LANGUAGES.map(String::from);
-                    dropdown(ui, "language", "", &mut state.language, &options);
+                    dropdown_inline(ui, "language", "", &mut state.language, &options, None);
                 });
                 setting_row(ui, theme, "Show romanized titles and artists", |ui| {
                     toggle(ui, theme, &mut state.romanized);

@@ -10,6 +10,7 @@ pub mod settings;
 fn header(ui: &mut egui::Ui, theme: &Theme, title: &str) -> bool {
     let mut back = false;
     ui.horizontal(|ui| {
+        crate::components::controls::fix_row_height(ui);
         ui.label(theme.heading(title));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             back = ui.button("Back").clicked();

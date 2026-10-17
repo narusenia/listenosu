@@ -19,17 +19,16 @@ pub fn search_bar(ui: &mut egui::Ui, theme: &Theme, text: &mut String, matches: 
     response
 }
 
-/// Labeled drop-down on its own row, as wide as its text.
-/// Returns true when the selection changed.
-pub fn dropdown(
-    ui: &mut egui::Ui,
-    id_salt: &str,
-    label: &str,
-    selected: &mut usize,
-    options: &[String],
-) -> bool {
-    ui.horizontal(|ui| dropdown_inline(ui, id_salt, label, selected, options, None))
-        .inner
+/// Height of a row that holds a button. egui does not re-center what was placed before a taller
+/// widget joins the row, so a row that mixes text and buttons is fixed at this height first,
+/// or the text sits above the buttons' text.
+pub fn fix_row_height(ui: &mut egui::Ui) -> f32 {
+    let spacing = ui.spacing();
+    let button_height =
+        ui.text_style_height(&egui::TextStyle::Button) + 2.0 * spacing.button_padding.y;
+    let height = button_height.max(spacing.interact_size.y);
+    ui.set_min_height(height);
+    height
 }
 
 /// Label and combo box placed in the current horizontal row, `width` wide in total (label included).
@@ -43,13 +42,13 @@ pub fn dropdown_inline(
     width: Option<f32>,
 ) -> bool {
     let mut changed = false;
-    // egui does not re-center what was placed before a taller widget joins the row, so fix the
-    // row at the height of the combo box button first, or the label sits above its text.
-    let spacing = ui.spacing();
-    let button_height =
-        ui.text_style_height(&egui::TextStyle::Button) + 2.0 * spacing.button_padding.y;
-    ui.set_min_height(button_height.max(spacing.interact_size.y));
-    let label_width = ui.label(label).rect.width();
+    fix_row_height(ui);
+    // An empty label would still add a widget and a gap.
+    let label_width = if label.is_empty() {
+        0.0
+    } else {
+        ui.label(label).rect.width()
+    };
     let mut combo = egui::ComboBox::from_id_salt(id_salt);
     if let Some(width) = width {
         // What is left of the width after the label and the gap, so the pair fills exactly `width`.
