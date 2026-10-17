@@ -22,7 +22,7 @@ The app is not code-signed, so Windows SmartScreen may warn you the first time. 
 - A UI styled after lazer's song select screen, and a mini player mode
 - Media keys, OS media controls, and a system tray icon
 - Discord Rich Presence and global hotkeys. Discord needs an Application ID of your own from the Discord Developer Portal; the beatmap cover and page button are optional and off by default
-- Color themes (a few are bundled; put your own `*.toml` in `%APPDATA%\listenosu	hemes`)
+- Color themes (a few are bundled; put your own `*.toml` in `%APPDATA%\listenosu\themes`)
 - Space plays and pauses while the window is focused; launching the app a second time brings the running window forward
 - English and Japanese
 

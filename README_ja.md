@@ -22,7 +22,7 @@ osu!lazer のライブラリにある楽曲を、作業用 BGM として流し�
 - lazer の選曲画面風の UI、ミニプレイヤー
 - メディアキー、OS のメディア表示、システムトレイ
 - Discord Rich Presence、グローバルホットキー。Discord は、Discord Developer Portal で自分で作った Application ID が必要。譜面のカバー画像とページのボタンは任意で、既定は OFF
-- カラーテーマ（いくつか同梱。自作の `*.toml` は `%APPDATA%\listenosu	hemes` に置く）
+- カラーテーマ（いくつか同梱。自作の `*.toml` は `%APPDATA%\listenosu\themes` に置く）
 - ウィンドウにフォーカスがあるとき Space で再生 / 一時停止。2 つ目を起動すると、動いているウィンドウを前面に出す
 - 英語と日本語
 
